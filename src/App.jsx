@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Trophy, Users, History, DollarSign, Plus, LayoutDashboard, Trash2, ShieldCheck, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -33,70 +33,71 @@ function App() {
     const [gameStep, setGameStep] = useState(0);
     const [g1WinnerIdx, setG1WinnerIdx] = useState(null);
 
+    // Persistence
     useEffect(() => {
         localStorage.setItem('vbc-players', JSON.stringify(players));
         localStorage.setItem('vbc-matches', JSON.stringify(matches));
     }, [players, matches]);
 
-    const addPlayer = (player) => setPlayers([...players, player]);
+    // Data Migration: Strip legacy wins/drinks AND ensure all matches have IDs
+    useEffect(() => {
+        const hasLegacyData = players.some(p => p.hasOwnProperty('wins') || p.hasOwnProperty('drinks'));
+        const hasMatchesWithoutId = matches.some(m => !m.id);
+        
+        if (hasLegacyData || hasMatchesWithoutId) {
+            console.log('Migrating data...');
+            if (hasLegacyData) {
+                setPlayers(prev => prev.map(({ wins, drinks, ...p }) => p));
+            }
+            if (hasMatchesWithoutId) {
+                setMatches(prev => prev.map(m => m.id ? m : { ...m, id: Date.now() + Math.random().toString(36).substr(2, 9) }));
+            }
+        }
+    }, [players, matches]);
+
+    const addPlayer = (player) => {
+        // Remove initial wins/drinks from new players to keep data clean
+        const { wins, drinks, ...purePlayer } = player;
+        setPlayers([...players, purePlayer]);
+    };
     const deletePlayer = (id) => setPlayers(players.filter(p => p.id !== id));
     const updatePlayer = (id, updates) => {
         setPlayers(players.map(p => p.id === id ? { ...p, ...updates } : p));
     };
 
-    const deleteMatch = (idx) => {
-        const match = matches[idx];
-        if (!match) return;
-
-        if (!window.confirm('確定要刪除這場賽事紀錄嗎？這會同時撤銷所有隊員的勝場和飲數扣除。')) return;
-        const updatedPlayers = players.map(p => {
-            // Add null/undefined checks for match.teams and match.winnerTeam
-            const wasInWinner = match.teams?.[match.winnerTeam]?.some(wp => wp.id === p.id) || false;
-            const wasInLoser = (match.teams?.flat()?.some(lp => lp.id === p.id) && !wasInWinner) || false;
-
-            if (wasInWinner) {
-                // Revert win and drinks (use payout if available, else default to 1)
-                const revertDrinks = (match.payout || 10) / 10;
-                return {
-                    ...p,
-                    wins: Math.max(0, (p.wins || 0) - 1),
-                    drinks: (p.drinks || 0) - revertDrinks
-                };
-            }
-            if (wasInLoser) {
-                // Revert loss drinks (use stake if available, else default 1)
-                const revertDrinks = (match.stake || 10) / 10;
-                return {
-                    ...p,
-                    drinks: (p.drinks || 0) + revertDrinks
-                };
-            }
-            return p;
+    // --- Computed Stats Logic ---
+    const playersWithStats = useMemo(() => {
+        return players.map(p => {
+            let wins = 0;
+            let drinks = 0;
+            matches.forEach(m => {
+                if (!m.teams || m.winnerTeam === undefined) return;
+                const wasInWinner = m.teams[m.winnerTeam]?.some(wp => wp.id === p.id);
+                const wasInLoser = m.teams.flat().some(lp => lp.id === p.id) && !wasInWinner;
+                
+                if (wasInWinner) {
+                    wins += 1;
+                    drinks += (m.payout || 0) / 10;
+                } else if (wasInLoser) {
+                    drinks -= (m.stake || 0) / 10;
+                }
+            });
+            return { ...p, wins, drinks };
         });
-        setPlayers(updatedPlayers);
-        setMatches(matches.filter((_, i) => i !== idx));
+    }, [players, matches]);
+
+    const deleteMatch = (id) => {
+        if (!window.confirm('確定要刪除這場賽事紀錄嗎？')) return;
+        setMatches(prev => prev.filter(m => m.id !== id));
     };
 
     const handleMatchComplete = (matchData) => {
-        setMatches([matchData, ...matches]);
-
-        const updatedPlayers = players.map(p => {
-            const wasInWinner = matchData.teams[matchData.winnerTeam].some(wp => wp.id === p.id);
-            const wasInLoser = matchData.teams.flat().some(lp => lp.id === p.id) && !wasInWinner;
-
-            if (wasInWinner) {
-                // $10 = 1 drink. Winners gain payout/10 drinks.
-                const gain = matchData.payout / 10;
-                return { ...p, wins: (p.wins || 0) + 1, drinks: (p.drinks || 0) + gain };
-            }
-            if (wasInLoser) {
-                // Losers lose stake/10 drinks.
-                const loss = matchData.stake / 10;
-                return { ...p, drinks: (p.drinks || 0) - loss };
-            }
-            return p;
-        });
-        setPlayers(updatedPlayers);
+        const matchWithId = {
+            ...matchData,
+            id: Date.now() + Math.random().toString(36).substr(2, 9),
+            date: matchData.date || new Date().toISOString()
+        };
+        setMatches([matchWithId, ...matches]);
 
         // Only switch to dashboard if not a rotation match OR if it's the last match of rotation
         const isLastOfRotation = matchData.isRotationMatch && matchData.gameStep === 2;
@@ -117,13 +118,9 @@ function App() {
     };
 
     const resetAllStats = () => {
-        if (window.confirm('🚨 警告：這將會刪除所有比賽紀錄，並將所有成員的勝數與飲數歸零。確定嗎？')) {
-            setMatches([]);
-            setPlayers(players.map(p => ({ ...p, wins: 0, drinks: 0 })));
-            setTeams([]);
-            setGameStep(0);
-            setG1WinnerIdx(null);
-            alert('數據已全部重設為零。');
+        if (window.confirm('🚨 警告：這將會刪除所有內容（包括隊員和紀錄），重歸零點。確定嗎？')) {
+            localStorage.clear();
+            window.location.reload();
         }
     };
 
@@ -162,13 +159,13 @@ function App() {
                 <AnimatePresence mode="wait">
                     {activeTab === 'dashboard' && (
                         <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                            <StatsHub players={players} matches={matches} />
+                            <StatsHub players={playersWithStats} matches={matches} />
                         </motion.div>
                     )}
 
                     {activeTab === 'teaming' && (
                         <motion.div key="teaming" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                            <TeamGenerator players={players} teams={teams} setTeams={setTeams} onReset={resetTeams} />
+                            <TeamGenerator players={playersWithStats} teams={teams} setTeams={setTeams} onReset={resetTeams} />
                         </motion.div>
                     )}
 
@@ -188,14 +185,14 @@ function App() {
 
                     {activeTab === 'settlement' && (
                         <motion.div key="settlement" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                            <DailyReport players={players} matches={matches} />
+                            <DailyReport players={playersWithStats} matches={matches} />
                         </motion.div>
                     )}
 
                     {activeTab === 'players' && (
                         <motion.div key="players" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                             <PlayerManager
-                                players={players}
+                                players={playersWithStats}
                                 onAdd={addPlayer}
                                 onDelete={deletePlayer}
                                 onUpdate={updatePlayer}
@@ -215,10 +212,10 @@ function App() {
                             </header>
 
                             <div className="space-y-4">
-                                {matches.map((m, idx) => (
+                                {matches.map((m) => (
                                     <motion.div
                                         layout
-                                        key={idx}
+                                        key={m.id}
                                         className="p-6 glass rounded-[32px] flex flex-col gap-4 group relative border border-white/5 hover:border-white/10 transition-all overflow-hidden"
                                     >
                                         <div className="flex items-center justify-between">
@@ -234,8 +231,11 @@ function App() {
                                             </div>
                                             {isAdmin && (
                                                 <button
-                                                    onClick={() => deleteMatch(idx)}
-                                                    className="p-3 bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-lg active:scale-95 z-20"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        deleteMatch(m.id);
+                                                    }}
+                                                    className="p-3 bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-lg active:scale-95 z-20 relative"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
