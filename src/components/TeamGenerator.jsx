@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Filter, RefreshCw, Trophy } from 'lucide-react';
+import { Users, Filter, RefreshCw, Trophy, Play, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const PlayerIcon = ({ icon, name, className = "w-6 h-6" }) => {
@@ -15,7 +15,7 @@ const PlayerIcon = ({ icon, name, className = "w-6 h-6" }) => {
     );
 };
 
-export default function TeamGenerator({ players, teams, setTeams }) {
+export default function TeamGenerator({ players, teams, setTeams, onReset }) {
     const [numTeams, setNumTeams] = useState(2);
     const [selectedPlayers, setSelectedPlayers] = useState([]);
 
@@ -61,7 +61,7 @@ export default function TeamGenerator({ players, teams, setTeams }) {
                         <button
                             key={n}
                             onClick={() => setNumTeams(n)}
-                            className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${numTeams === n ? 'bg-emerald-500 text-white shadow-lg' : 'text-gray-500'
+                            className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${numTeams === n ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-gray-500 hover:text-gray-300'
                                 }`}
                         >
                             {n} 隊
@@ -70,13 +70,13 @@ export default function TeamGenerator({ players, teams, setTeams }) {
                 </div>
             </header>
 
-            {/* Player Selection Grid */}
+            {/* Selection Options */}
             <section className="space-y-4">
                 <div className="flex items-center justify-between ml-1">
                     <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">選擇出場成員 ({selectedPlayers.length})</h3>
                     <button
                         onClick={selectAll}
-                        className="text-[10px] font-black text-emerald-400 uppercase tracking-widest"
+                        className="text-[10px] font-black text-emerald-400 uppercase tracking-widest hover:text-emerald-300"
                     >
                         {selectedPlayers.length === players.length ? '取消全部' : '全部選擇'}
                     </button>
@@ -88,8 +88,8 @@ export default function TeamGenerator({ players, teams, setTeams }) {
                             key={p.id}
                             onClick={() => togglePlayer(p.id)}
                             className={`flex flex-col items-center gap-2 p-3 rounded-2xl transition-all active:scale-95 border ${selectedPlayers.includes(p.id)
-                                    ? 'bg-emerald-500/10 border-emerald-500/50'
-                                    : 'bg-white/5 border-transparent grayscale brightness-50'
+                                ? 'bg-emerald-500/10 border-emerald-500/50 shadow-lg shadow-emerald-500/5'
+                                : 'bg-white/5 border-transparent grayscale brightness-50 opacity-40'
                                 }`}
                         >
                             <PlayerIcon icon={p.icon} name={p.name} className="w-10 h-10" />
@@ -99,54 +99,70 @@ export default function TeamGenerator({ players, teams, setTeams }) {
                 </div>
             </section>
 
-            <button
-                onClick={generateTeams}
-                disabled={selectedPlayers.length < 4}
-                className="w-full py-5 bg-emerald-500 rounded-[32px] font-black italic text-xl tracking-tighter uppercase shadow-2xl shadow-emerald-500/30 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale mb-8"
-            >
-                自動平衡分隊
-            </button>
+            <div className="flex gap-3">
+                <button
+                    onClick={generateTeams}
+                    disabled={selectedPlayers.length < (numTeams * 2)}
+                    className="flex-1 py-5 bg-emerald-500 rounded-[32px] font-black italic text-xl tracking-tighter uppercase shadow-2xl shadow-emerald-500/30 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale"
+                >
+                    {teams.length > 0 ? '重新平衡分隊' : '自動平衡分隊'}
+                </button>
+                {teams.length > 0 && (
+                    <button
+                        onClick={onReset}
+                        className="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-[28px] flex items-center justify-center text-red-500 shadow-xl active:scale-90 transition-all hover:bg-red-500 hover:text-white"
+                    >
+                        <Trash2 className="w-7 h-7" />
+                    </button>
+                )}
+            </div>
 
             {/* Results Display */}
-            <div className="grid grid-cols-1 gap-4">
-                <AnimatePresence>
-                    {teams.map((team, idx) => (
-                        <motion.div
-                            layout
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            key={idx}
-                            className="p-6 glass rounded-[32px] border border-white/5 relative overflow-hidden"
-                        >
-                            <div className={`absolute top-0 left-0 w-2 h-full ${idx === 0 ? 'bg-blue-500' : idx === 1 ? 'bg-emerald-500' : 'bg-purple-500'
-                                }`} />
+            {teams.length > 0 && (
+                <div className="grid grid-cols-1 gap-4">
+                    <div className="flex items-center justify-between px-2 pt-4">
+                        <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">分隊結果</h3>
+                        <p className="text-[8px] font-bold text-gray-700 uppercase tracking-widest italic">使用 SNAKE DRAFT 演算法平衡實力</p>
+                    </div>
+                    <AnimatePresence>
+                        {teams.map((team, idx) => (
+                            <motion.div
+                                layout
+                                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                key={idx}
+                                className="p-6 glass rounded-[32px] border border-white/5 relative overflow-hidden group hover:border-white/10 transition-all"
+                            >
+                                <div className={`absolute top-0 left-0 w-2 h-full ${idx === 0 ? 'bg-blue-500' : idx === 1 ? 'bg-emerald-500' : 'bg-purple-500'
+                                    }`} />
 
-                            <div className="flex items-center justify-between mb-4">
-                                <h4 className="text-xl font-black italic tracking-tighter uppercase">隊伍 {idx + 1}</h4>
-                                <div className="flex items-center gap-1 text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                                    <Users className="w-3 h-3" /> {team.length} 人
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-2">
-                                {team.map(p => (
-                                    <div key={p.id} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5">
-                                        <div className="flex items-center gap-3">
-                                            <PlayerIcon icon={p.icon} name={p.name} className="w-6 h-6" />
-                                            <span className="font-bold text-sm">{p.name}</span>
-                                        </div>
-                                        <div className="flex gap-0.5">
-                                            {[1, 2, 3, 4, 5].map(s => (
-                                                <div key={s} className={`w-1.5 h-1.5 rounded-full ${s <= p.skill ? 'bg-emerald-400' : 'bg-white/5'}`} />
-                                            ))}
-                                        </div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h4 className="text-xl font-black italic tracking-tighter uppercase">隊伍 {idx + 1}</h4>
+                                    <div className="flex items-center gap-1 text-[10px] font-black text-gray-500 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full">
+                                        <Users className="w-3 h-3" /> {team.length} 人
                                     </div>
-                                ))}
-                            </div>
-                        </motion.div>
-                    ))}
-                </AnimatePresence>
-            </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-2">
+                                    {team.map(p => (
+                                        <div key={p.id} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 group-hover:bg-white/10 transition-colors">
+                                            <div className="flex items-center gap-3">
+                                                <PlayerIcon icon={p.icon} name={p.name} className="w-7 h-7" />
+                                                <span className="font-bold text-sm">{p.name}</span>
+                                            </div>
+                                            <div className="flex gap-0.5">
+                                                {[1, 2, 3, 4, 5].map(s => (
+                                                    <div key={s} className={`w-1.5 h-1.5 rounded-full ${s <= (p.skill || 3) ? 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.5)]' : 'bg-white/5'}`} />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                </div>
+            )}
         </div>
     );
 }

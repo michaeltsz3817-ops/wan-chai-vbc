@@ -36,15 +36,16 @@ function App() {
 
     const addPlayer = (player) => setPlayers([...players, player]);
     const deletePlayer = (id) => setPlayers(players.filter(p => p.id !== id));
+    const updatePlayer = (id, updates) => {
+        setPlayers(players.map(p => p.id === id ? { ...p, ...updates } : p));
+    };
 
     const deleteMatch = (idx) => {
         const match = matches[idx];
         if (!match) return;
 
-        // CONFIRMATION is important for admin actions
         if (!window.confirm('確定要刪除這場賽事紀錄嗎？這會同時撤銷所有隊員的勝場和飲數扣除。')) return;
 
-        // Revert player stats
         const updatedPlayers = players.map(p => {
             const wasInWinner = match.teams[match.winnerTeam].some(wp => wp.id === p.id);
             const wasInLoser = match.teams.flat().some(lp => lp.id === p.id) && !wasInWinner;
@@ -53,7 +54,7 @@ function App() {
                 return {
                     ...p,
                     wins: Math.max(0, (p.wins || 0) - 1),
-                    drinks: (p.drinks || 0) - 1
+                    drinks: Math.max(0, (p.drinks || 0) - 1)
                 };
             }
             if (wasInLoser) {
@@ -71,7 +72,6 @@ function App() {
     const handleMatchComplete = (matchData) => {
         setMatches([matchData, ...matches]);
 
-        // Update player stats
         const updatedPlayers = players.map(p => {
             const wasInWinner = matchData.teams[matchData.winnerTeam].some(wp => wp.id === p.id);
             const wasInLoser = matchData.teams.flat().some(lp => lp.id === p.id) && !wasInWinner;
@@ -85,8 +85,15 @@ function App() {
             return p;
         });
         setPlayers(updatedPlayers);
-        setTeams([]);
+        // Do NOT clear teams here to allow persistent matching
         setActiveTab('dashboard');
+    };
+
+    const resetTeams = () => {
+        if (window.confirm('確定要解散目前的隊伍並重新抽籤嗎？')) {
+            setTeams([]);
+            setActiveTab('teaming');
+        }
     };
 
     return (
@@ -130,13 +137,13 @@ function App() {
 
                     {activeTab === 'teaming' && (
                         <motion.div key="teaming" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                            <TeamGenerator players={players} teams={teams} setTeams={setTeams} />
+                            <TeamGenerator players={players} teams={teams} setTeams={setTeams} onReset={resetTeams} />
                         </motion.div>
                     )}
 
                     {activeTab === 'play' && (
                         <motion.div key="play" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}>
-                            <MatchSession activeTeams={teams} onComplete={handleMatchComplete} />
+                            <MatchSession activeTeams={teams} onComplete={handleMatchComplete} onResetTeams={resetTeams} />
                         </motion.div>
                     )}
 
@@ -148,14 +155,14 @@ function App() {
 
                     {activeTab === 'players' && (
                         <motion.div key="players" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                            <PlayerManager players={players} onAdd={addPlayer} onDelete={deletePlayer} />
+                            <PlayerManager players={players} onAdd={addPlayer} onDelete={deletePlayer} onUpdate={updatePlayer} />
                         </motion.div>
                     )}
 
                     {activeTab === 'history' && (
-                        <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+                        <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6 pb-20">
                             <header className="flex items-center justify-between">
-                                <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1">歷史對仗 (香港時間)</h3>
+                                <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1">歷史對仗 (詳細名單)</h3>
                                 <div className="text-[8px] bg-white/5 px-2 py-1 rounded-full text-gray-600 font-bold uppercase tracking-widest flex items-center gap-1">
                                     <HelpCircle className="w-2 h-2" /> HKT Support
                                 </div>
@@ -166,30 +173,49 @@ function App() {
                                     <motion.div
                                         layout
                                         key={idx}
-                                        className="p-6 glass rounded-[32px] flex items-center justify-between group relative border border-white/5 hover:border-white/10 transition-all"
+                                        className="p-6 glass rounded-[32px] flex flex-col gap-4 group relative border border-white/5 hover:border-white/10 transition-all overflow-hidden"
                                     >
-                                        <div className="flex-1 space-y-2">
+                                        <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
-                                                <div className="px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                                                    <span className="text-[10px] font-black text-emerald-400 uppercase italic">Team {m.winnerTeam + 1} WIN</span>
+                                                <div className="px-3 py-1 bg-emerald-500/20 rounded-full border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
+                                                    <span className="text-[10px] font-black text-emerald-400 uppercase italic tracking-wider">Team {m.winnerTeam + 1} WINNER</span>
                                                 </div>
-                                                <span className="text-xl font-black italic tracking-tighter uppercase">${m.stake} <span className="text-[10px] text-gray-500 not-italic">賭注</span></span>
+                                                <span className="text-xl font-black italic tracking-tighter uppercase text-white">${m.stake} <span className="text-[10px] text-gray-500 not-italic">賭注</span></span>
                                             </div>
-                                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest pl-1">
-                                                {new Date(m.date).toLocaleString('zh-HK', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                            {isAdmin && (
+                                                <button
+                                                    onClick={() => deleteMatch(idx)}
+                                                    className="p-3 bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-lg active:scale-95 z-20"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <div className="flex flex-wrap gap-2">
+                                                {m.teams[m.winnerTeam].map(p => (
+                                                    <div key={p.id} className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                                                        <span className="text-xs">{p.icon && p.icon.startsWith('data:image') ? '🖼️' : (p.icon || '🏐')}</span>
+                                                        <span className="text-[10px] font-black uppercase text-emerald-400">{p.name}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div className="h-[1px] bg-white/5 w-full" />
+                                            <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest pl-1">
+                                                {new Date(m.date).toLocaleString('zh-HK', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })} 香港時間
                                             </p>
                                         </div>
-                                        {isAdmin && (
-                                            <button
-                                                onClick={() => deleteMatch(idx)}
-                                                className="p-4 bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-lg active:scale-95"
-                                            >
-                                                <Trash2 className="w-5 h-5" />
-                                            </button>
-                                        )}
                                     </motion.div>
                                 ))}
                             </div>
+                            {matches.length === 0 && (
+                                <div className="p-20 text-center space-y-3">
+                                    <p className="text-gray-600 font-bold italic">暫無比賽紀錄，快啲開場打啦！</p>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
                             {matches.length === 0 && (
                                 <div className="p-20 text-center space-y-3">
                                     <p className="text-gray-600 font-bold italic">暫無比賽紀錄，快啲開場打啦！</p>
@@ -215,7 +241,7 @@ function App() {
                 <NavButton active={activeTab === 'settlement'} onClick={() => setActiveTab('settlement')} icon={<DollarSign />} label="結算" />
                 <NavButton active={activeTab === 'players'} onClick={() => setActiveTab('players')} icon={<Trophy />} label="成員" />
             </nav>
-        </div>
+        </div >
     );
 }
 
