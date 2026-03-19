@@ -66,6 +66,7 @@ export default function StatsHub({ players, matches }) {
                             <tr className="bg-white/5 text-gray-500 text-[10px] uppercase font-bold tracking-widest">
                                 <th className="px-5 py-4">成員</th>
                                 <th className="px-5 py-4 text-center">勝</th>
+                                <th className="px-5 py-4 text-center">負</th>
                                 <th className="px-5 py-4 text-right">飲數</th>
                             </tr>
                         </thead>
@@ -85,6 +86,7 @@ export default function StatsHub({ players, matches }) {
                                         </span>
                                     </td>
                                     <td className="px-5 py-4 text-center font-black text-emerald-400 text-base">{p.wins || 0}</td>
+                                    <td className="px-5 py-4 text-center font-black text-red-400 text-base">{p.losses || 0}</td>
                                     <td className={`px-5 py-4 text-right font-black text-base ${(p.drinks || 0) >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
                                         {(p.drinks || 0) >= 0 ? `+${(p.drinks || 0)}` : (p.drinks || 0)}
                                     </td>

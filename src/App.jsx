@@ -69,6 +69,7 @@ function App() {
     const playersWithStats = useMemo(() => {
         return players.map(p => {
             let wins = 0;
+            let losses = 0;
             let drinks = 0;
             matches.forEach(m => {
                 if (!m.teams || m.winnerTeam === undefined) return;
@@ -79,10 +80,11 @@ function App() {
                     wins += 1;
                     drinks += 1; // Win is always +1 drink
                 } else if (wasInLoser) {
+                    losses += 1;
                     drinks -= 1; // Lose is always -1 drink
                 }
             });
-            return { ...p, wins, drinks };
+            return { ...p, wins, losses, drinks };
         });
     }, [players, matches]);
 

@@ -133,6 +133,8 @@ export default function DailyReport({ players, matches }) {
                 <div className="space-y-3">
                     {players.map(p => {
                         let totalEarnings = 0;
+                        let dailyWins = 0;
+                        let dailyLosses = 0;
                         filteredMatches.forEach(m => {
                             if (!m.teams || m.winnerTeam === undefined) return;
                             const wasInWinner = m.teams[m.winnerTeam]?.some(wp => wp.id === p.id) || false;
@@ -140,8 +142,10 @@ export default function DailyReport({ players, matches }) {
 
                             if (wasInWinner) {
                                 totalEarnings += m.payout;
+                                dailyWins += 1;
                             } else if (wasInLoser) {
                                 totalEarnings -= m.stake;
+                                dailyLosses += 1;
                             }
                         });
 
@@ -155,9 +159,15 @@ export default function DailyReport({ players, matches }) {
                                     <PlayerIcon icon={p.icon} name={p.name} className="w-12 h-12" />
                                     <div>
                                         <span className="text-lg font-black italic tracking-tighter uppercase">{p.name}</span>
-                                        <p className="text-[8px] text-gray-600 font-bold uppercase tracking-widest mt-0.5">
-                                            Participated: {filteredMatches.filter(m => m.teams.flat().some(tp => tp.id === p.id)).length} games
-                                        </p>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <p className="text-[8px] text-gray-600 font-bold uppercase tracking-widest">
+                                                {dailyWins}勝 {dailyLosses}負
+                                            </p>
+                                            <span className="text-gray-800 text-[8px]">•</span>
+                                            <p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">
+                                                {filteredMatches.filter(m => m.teams.flat().some(tp => tp.id === p.id)).length} games
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="text-right">
