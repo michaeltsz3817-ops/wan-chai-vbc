@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { DollarSign, Calendar, Clock, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, isSameMonth, isToday, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isSameMonth, isToday, parseISO, isSameDay, subDays, addDays } from 'date-fns';
 import { zhHK } from 'date-fns/locale';
 
 const PlayerIcon = ({ icon, name, className = "w-6 h-6" }) => {
@@ -19,6 +19,7 @@ const PlayerIcon = ({ icon, name, className = "w-6 h-6" }) => {
 export default function DailyReport({ players, matches }) {
     const [viewMode, setViewMode] = useState('daily'); // 'daily' or 'monthly'
     const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(new Date());
 
     const navigateMonth = (direction) => {
         const next = new Date(currentMonth);
@@ -26,10 +27,14 @@ export default function DailyReport({ players, matches }) {
         setCurrentMonth(next);
     };
 
+    const navigateDay = (direction) => {
+        setSelectedDate(prev => direction > 0 ? addDays(prev, 1) : subDays(prev, 1));
+    };
+
     const filteredMatches = matches.filter(m => {
         const matchDate = parseISO(m.date);
         if (viewMode === 'daily') {
-            return isToday(matchDate);
+            return isSameDay(matchDate, selectedDate);
         } else {
             return isSameMonth(matchDate, currentMonth);
         }
@@ -49,7 +54,7 @@ export default function DailyReport({ players, matches }) {
                             onClick={() => setViewMode('daily')}
                             className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${viewMode === 'daily' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-gray-500 hover:text-gray-300'}`}
                         >
-                            今日
+                            按日
                         </button>
                         <button
                             onClick={() => setViewMode('monthly')}
@@ -59,6 +64,23 @@ export default function DailyReport({ players, matches }) {
                         </button>
                     </div>
                 </div>
+
+                {viewMode === 'daily' && (
+                    <div className="flex items-center justify-between p-4 glass rounded-[32px] border border-white/5 bg-white/2">
+                        <button onClick={() => navigateDay(-1)} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+                            <ChevronLeft className="w-5 h-5 text-emerald-400" />
+                        </button>
+                        <div className="text-center">
+                            <p className="text-sm font-black italic tracking-tighter uppercase text-white">
+                                {isToday(selectedDate) ? '今日 ' : ''}{format(selectedDate, 'yyyy年 M月 d日', { locale: zhHK })}
+                            </p>
+                            <p className="text-[8px] font-bold text-gray-600 uppercase tracking-[0.2em] mt-0.5">歷史紀錄瀏覽</p>
+                        </div>
+                        <button onClick={() => navigateDay(1)} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+                            <ChevronRight className="w-5 h-5 text-emerald-400" />
+                        </button>
+                    </div>
+                )}
 
                 {viewMode === 'monthly' && (
                     <div className="flex items-center justify-between p-4 glass rounded-[32px] border border-white/5 bg-white/2">
@@ -79,7 +101,7 @@ export default function DailyReport({ players, matches }) {
 
                 <div className="flex items-center justify-center gap-3 text-[10px] font-bold tracking-widest uppercase">
                     <p className="text-blue-400 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" /> {viewMode === 'daily' ? 'Today' : 'Monthly View'}
+                        <Calendar className="w-3 h-3" /> {viewMode === 'daily' ? 'Daily View' : 'Monthly View'}
                     </p>
                     <span className="text-gray-800">|</span>
                     <p className="text-yellow-500 flex items-center gap-1">

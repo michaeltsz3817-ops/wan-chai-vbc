@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const EMOJIS = ['🏐', '🔥', '⭐️', '👑', '🦁', '🦅', '⚡️', '😎', '💪', '🧤', '🎯', '🚀'];
 
-export default function PlayerManager({ players, onAdd, onDelete, onUpdate }) {
+export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onResetAll, isAdmin }) {
     const [newName, setNewName] = useState('');
     const [selectedIcon, setSelectedIcon] = useState(EMOJIS[0]);
     const [editingId, setEditingId] = useState(null);
@@ -178,6 +178,14 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate }) {
             <section className="space-y-4">
                 <div className="flex items-center justify-between ml-1">
                     <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">現有成員 ({players.length})</h3>
+                    {isAdmin && (
+                        <button
+                            onClick={onResetAll}
+                            className="text-[10px] font-black text-red-500 uppercase tracking-widest bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/20 hover:bg-red-500 hover:text-white transition-all active:scale-95"
+                        >
+                            重設所有數據
+                        </button>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">

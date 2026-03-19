@@ -14,11 +14,11 @@ function App() {
     const [players, setPlayers] = useState(() => {
         const saved = localStorage.getItem('vbc-players');
         return saved ? JSON.parse(saved) : [
-            { id: '1', name: '阿強', icon: '🔥', skill: 5, wins: 12, drinks: 8 },
-            { id: '2', name: '小明', icon: '🦁', skill: 2, wins: 3, drinks: -5 },
-            { id: '3', name: '大師兄', icon: '⚡️', skill: 4, wins: 9, drinks: 4 },
-            { id: '4', name: '波子', icon: '🧤', skill: 3, wins: 7, drinks: 1 },
-            { id: '5', name: '阿飛', icon: '🦅', skill: 4, wins: 10, drinks: 12 },
+            { id: '1', name: '阿強', icon: '🔥', skill: 5, wins: 0, drinks: 0 },
+            { id: '2', name: '小明', icon: '🦁', skill: 2, wins: 0, drinks: 0 },
+            { id: '3', name: '大師兄', icon: '⚡️', skill: 4, wins: 0, drinks: 0 },
+            { id: '4', name: '波子', icon: '🧤', skill: 3, wins: 0, drinks: 0 },
+            { id: '5', name: '阿飛', icon: '🦅', skill: 4, wins: 0, drinks: 0 },
         ];
     });
 
@@ -116,6 +116,17 @@ function App() {
         }
     };
 
+    const resetAllStats = () => {
+        if (window.confirm('🚨 警告：這將會刪除所有比賽紀錄，並將所有成員的勝數與飲數歸零。確定嗎？')) {
+            setMatches([]);
+            setPlayers(players.map(p => ({ ...p, wins: 0, drinks: 0 })));
+            setTeams([]);
+            setGameStep(0);
+            setG1WinnerIdx(null);
+            alert('數據已全部重設為零。');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[#050505] text-white pb-32 font-sans selection:bg-emerald-500/30 overflow-x-hidden">
             {/* Background Orbs */}
@@ -183,7 +194,14 @@ function App() {
 
                     {activeTab === 'players' && (
                         <motion.div key="players" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                            <PlayerManager players={players} onAdd={addPlayer} onDelete={deletePlayer} onUpdate={updatePlayer} />
+                            <PlayerManager
+                                players={players}
+                                onAdd={addPlayer}
+                                onDelete={deletePlayer}
+                                onUpdate={updatePlayer}
+                                onResetAll={resetAllStats}
+                                isAdmin={isAdmin}
+                            />
                         </motion.div>
                     )}
 
