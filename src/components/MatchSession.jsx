@@ -15,18 +15,24 @@ const PlayerIcon = ({ icon, name, className = "w-6 h-6" }) => {
     );
 };
 
-export default function MatchSession({ activeTeams, onComplete, onResetTeams }) {
+export default function MatchSession({
+    activeTeams,
+    onComplete,
+    onResetTeams,
+    gameStep,
+    setGameStep,
+    g1WinnerIdx,
+    setG1WinnerIdx
+}) {
     const [stake, setStake] = useState(10);
     const [winnerIndex, setWinnerIndex] = useState(null);
 
-    // Rotation State (Only for 3 teams)
-    const [gameStep, setGameStep] = useState(0); // 0, 1, 2
-    const [g1WinnerIdx, setG1WinnerIdx] = useState(null);
-
-    // Reset rotation if teams change length
+    // Reset rotation if teams change length (handled via props now)
     useEffect(() => {
-        setGameStep(0);
-        setG1WinnerIdx(null);
+        if (activeTeams.length !== 3) {
+            setGameStep(0);
+            setG1WinnerIdx(null);
+        }
         setWinnerIndex(null);
     }, [activeTeams.length]);
 
@@ -38,8 +44,14 @@ export default function MatchSession({ activeTeams, onComplete, onResetTeams }) 
                 </div>
                 <div className="space-y-2">
                     <p className="font-black italic text-xl tracking-tighter uppercase text-white">尚未準備就緒</p>
-                    <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">請先在「組隊」頁面生成隊伍，<br />然後回來開始比賽。</p>
+                    <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">請先在「分隊」頁面生成隊伍，<br />然後回來開始比賽。</p>
                 </div>
+                <button
+                    onClick={onResetTeams}
+                    className="px-6 py-3 bg-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/10 transition-all"
+                >
+                    前往組隊頁面
+                </button>
             </div>
         );
     }
@@ -78,19 +90,19 @@ export default function MatchSession({ activeTeams, onComplete, onResetTeams }) 
 
         // Advance rotation if 3 teams
         if (isThreeTeam) {
-            if (gameStep === 0) setG1WinnerIdx(winnerIndex);
-
-            if (gameStep < 2) {
-                setGameStep(gameStep + 1);
-                setWinnerIndex(null);
+            if (gameStep === 0) {
+                setG1WinnerIdx(winnerIndex);
+                setGameStep(1);
+            } else if (gameStep === 1) {
+                setGameStep(2);
             } else {
                 // End of session, prompt reset or start over
                 if (window.confirm('三場循環賽已結束！是否重新開始新一輪循環？')) {
                     setGameStep(0);
                     setG1WinnerIdx(null);
-                    setWinnerIndex(null);
                 }
             }
+            setWinnerIndex(null);
         } else {
             setWinnerIndex(null);
         }

@@ -29,6 +29,10 @@ function App() {
 
     const [teams, setTeams] = useState([]);
 
+    // Session State (Persistent between tab switches)
+    const [gameStep, setGameStep] = useState(0);
+    const [g1WinnerIdx, setG1WinnerIdx] = useState(null);
+
     useEffect(() => {
         localStorage.setItem('vbc-players', JSON.stringify(players));
         localStorage.setItem('vbc-matches', JSON.stringify(matches));
@@ -92,6 +96,8 @@ function App() {
     const resetTeams = () => {
         if (window.confirm('確定要解散目前的隊伍並重新抽籤嗎？')) {
             setTeams([]);
+            setGameStep(0);
+            setG1WinnerIdx(null);
             setActiveTab('teaming');
         }
     };
@@ -143,7 +149,15 @@ function App() {
 
                     {activeTab === 'play' && (
                         <motion.div key="play" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}>
-                            <MatchSession activeTeams={teams} onComplete={handleMatchComplete} onResetTeams={resetTeams} />
+                            <MatchSession
+                                activeTeams={teams}
+                                onComplete={handleMatchComplete}
+                                onResetTeams={resetTeams}
+                                gameStep={gameStep}
+                                setGameStep={setGameStep}
+                                g1WinnerIdx={g1WinnerIdx}
+                                setG1WinnerIdx={setG1WinnerIdx}
+                            />
                         </motion.div>
                     )}
 
