@@ -112,8 +112,9 @@ export default function DailyReport({ players, matches }) {
                     {players.map(p => {
                         let totalEarnings = 0;
                         filteredMatches.forEach(m => {
-                            const wasInWinner = m.teams[m.winnerTeam].some(wp => wp.id === p.id);
-                            const wasInLoser = m.teams.flat().some(lp => lp.id === p.id) && !wasInWinner;
+                            if (!m.teams || m.winnerTeam === undefined) return;
+                            const wasInWinner = m.teams[m.winnerTeam]?.some(wp => wp.id === p.id) || false;
+                            const wasInLoser = (m.teams.flat().some(lp => lp.id === p.id) && !wasInWinner) || false;
 
                             if (wasInWinner) {
                                 totalEarnings += m.payout;

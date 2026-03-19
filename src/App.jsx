@@ -49,10 +49,10 @@ function App() {
         if (!match) return;
 
         if (!window.confirm('確定要刪除這場賽事紀錄嗎？這會同時撤銷所有隊員的勝場和飲數扣除。')) return;
-
         const updatedPlayers = players.map(p => {
-            const wasInWinner = match.teams[match.winnerTeam].some(wp => wp.id === p.id);
-            const wasInLoser = match.teams.flat().some(lp => lp.id === p.id) && !wasInWinner;
+            // Add null/undefined checks for match.teams and match.winnerTeam
+            const wasInWinner = match.teams?.[match.winnerTeam]?.some(wp => wp.id === p.id) || false;
+            const wasInLoser = (match.teams?.flat()?.some(lp => lp.id === p.id) && !wasInWinner) || false;
 
             if (wasInWinner) {
                 // Revert win and drinks (use payout if available, else default to 1)
@@ -207,11 +207,11 @@ function App() {
                                             <div className="flex items-center gap-3">
                                                 <div className="px-3 py-1 bg-emerald-500/20 rounded-full border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
                                                     <span className="text-[10px] font-black text-emerald-400 uppercase italic tracking-wider">
-                                                        {m.isRotationMatch ? `Team ${m.absoluteWinnerIdx + 1}` : `Team ${m.winnerTeam + 1}`} WINNER
+                                                        {m.isRotationMatch && m.absoluteWinnerIdx !== undefined ? `Team ${m.absoluteWinnerIdx + 1}` : `Team ${(m.winnerTeam ?? 0) + 1}`} WINNER
                                                     </span>
                                                 </div>
                                                 <span className="text-xl font-black italic tracking-tighter uppercase text-white">
-                                                    ${m.stake} <span className="text-[10px] text-gray-500 not-italic">{m.isRotationMatch ? m.roundName : 'Friendly'}</span>
+                                                    ${m.stake} <span className="text-[10px] text-gray-500 not-italic">{m.isRotationMatch ? (m.roundName || 'Rotation') : 'Friendly'}</span>
                                                 </span>
                                             </div>
                                             {isAdmin && (
@@ -226,7 +226,7 @@ function App() {
 
                                         <div className="space-y-3">
                                             <div className="flex flex-wrap gap-2">
-                                                {m.teams[m.winnerTeam].map(p => (
+                                                {m.teams && m.teams[m.winnerTeam] && m.teams[m.winnerTeam].map(p => (
                                                     <div key={p.id} className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
                                                         <span className="text-xs">{p.icon && p.icon.startsWith('data:image') ? '🖼️' : (p.icon || '🏐')}</span>
                                                         <span className="text-[10px] font-black uppercase text-emerald-400">{p.name}</span>
