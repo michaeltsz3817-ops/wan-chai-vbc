@@ -216,13 +216,6 @@ function App() {
                             )}
                         </motion.div>
                     )}
-                            {matches.length === 0 && (
-                                <div className="p-20 text-center space-y-3">
-                                    <p className="text-gray-600 font-bold italic">暫無比賽紀錄，快啲開場打啦！</p>
-                                </div>
-                            )}
-                        </motion.div>
-                    )}
                 </AnimatePresence>
             </main>
 
