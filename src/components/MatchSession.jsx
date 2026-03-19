@@ -77,15 +77,21 @@ export default function MatchSession({
         const totalLost = losers.length * stake;
         const winPerPerson = winners.length > 0 ? totalLost / winners.length : 0;
 
+        const absoluteWinnerIdx = winnerIndex; // 0, 1, or 2
+        const relativeWinnerIdx = playingTeams.findIndex(t => t === winners);
+
         // Record the actual match result
         onComplete({
             id: Date.now().toString(),
             date: new Date().toISOString(),
             stake,
-            winnerTeam: winnerIndex,
+            winnerTeam: relativeWinnerIdx, // Relative to playingTeams (0 or 1)
+            absoluteWinnerIdx, // Absolute to activeTeams (0, 1, or 2)
             teams: playingTeams, // Only record those who played in this match
             payout: winPerPerson,
-            roundName: isThreeTeam ? `Round ${gameStep + 1}` : 'Friendly'
+            roundName: isThreeTeam ? `Round ${gameStep + 1}` : 'Friendly',
+            isRotationMatch: isThreeTeam,
+            gameStep: isThreeTeam ? gameStep : null
         });
 
         // Advance rotation if 3 teams
@@ -96,16 +102,12 @@ export default function MatchSession({
             } else if (gameStep === 1) {
                 setGameStep(2);
             } else {
-                // End of session, prompt reset or start over
-                if (window.confirm('三場循環賽已結束！是否重新開始新一輪循環？')) {
-                    setGameStep(0);
-                    setG1WinnerIdx(null);
-                }
+                // End of session, automatically reset to Round 1
+                setGameStep(0);
+                setG1WinnerIdx(null);
             }
-            setWinnerIndex(null);
-        } else {
-            setWinnerIndex(null);
         }
+        setWinnerIndex(null);
     };
 
     return (

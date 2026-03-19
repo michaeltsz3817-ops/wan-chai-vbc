@@ -35,7 +35,8 @@ export default function DailyReport({ players, matches }) {
         }
     });
 
-    const totalStake = filteredMatches.reduce((acc, m) => acc + m.stake, 0);
+    // Total Stake = total amount losers lose (money changing hands)
+    const totalStake = filteredMatches.reduce((acc, m) => acc + m.stake * (m.teams.flat().length - m.teams[m.winnerTeam].length), 0);
     const totalPayout = filteredMatches.reduce((acc, m) => acc + m.payout * m.teams[m.winnerTeam].length, 0);
 
     return (
@@ -94,7 +95,7 @@ export default function DailyReport({ players, matches }) {
                 </div>
                 <div className="relative z-10">
                     <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">
-                        {viewMode === 'daily' ? '今日' : '本月'}總投注額 (POOL)
+                        {viewMode === 'daily' ? '今日' : '本月'}總結算金額 (POOL)
                     </p>
                     <p className="text-5xl font-black italic tracking-tighter">${totalStake}</p>
                 </div>

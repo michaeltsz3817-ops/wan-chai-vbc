@@ -86,7 +86,7 @@ export default function StatsHub({ players, matches }) {
                                     </td>
                                     <td className="px-5 py-4 text-center font-black text-emerald-400 text-base">{p.wins || 0}</td>
                                     <td className={`px-5 py-4 text-right font-black text-base ${(p.drinks || 0) >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
-                                        {(p.drinks || 0) >= 0 ? `+${p.drinks || 0}` : p.drinks}
+                                        {(p.drinks || 0) >= 0 ? `+${(p.drinks || 0).toLocaleString(undefined, { maximumFractionDigits: 1 })}` : (p.drinks || 0).toLocaleString(undefined, { maximumFractionDigits: 1 })}
                                     </td>
                                 </tr>
                             ))}

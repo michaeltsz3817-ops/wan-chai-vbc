@@ -55,16 +55,20 @@ function App() {
             const wasInLoser = match.teams.flat().some(lp => lp.id === p.id) && !wasInWinner;
 
             if (wasInWinner) {
+                // Revert win and drinks (use payout if available, else default to 1)
+                const revertDrinks = (match.payout || 10) / 10;
                 return {
                     ...p,
                     wins: Math.max(0, (p.wins || 0) - 1),
-                    drinks: Math.max(0, (p.drinks || 0) - 1)
+                    drinks: (p.drinks || 0) - revertDrinks
                 };
             }
             if (wasInLoser) {
+                // Revert loss drinks (use stake if available, else default 1)
+                const revertDrinks = (match.stake || 10) / 10;
                 return {
                     ...p,
-                    drinks: (p.drinks || 0) + 1
+                    drinks: (p.drinks || 0) + revertDrinks
                 };
             }
             return p;
@@ -81,16 +85,26 @@ function App() {
             const wasInLoser = matchData.teams.flat().some(lp => lp.id === p.id) && !wasInWinner;
 
             if (wasInWinner) {
-                return { ...p, wins: (p.wins || 0) + 1, drinks: (p.drinks || 0) + 1 };
+                // $10 = 1 drink. Winners gain payout/10 drinks.
+                const gain = matchData.payout / 10;
+                return { ...p, wins: (p.wins || 0) + 1, drinks: (p.drinks || 0) + gain };
             }
             if (wasInLoser) {
-                return { ...p, drinks: (p.drinks || 0) - 1 };
+                // Losers lose stake/10 drinks.
+                const loss = matchData.stake / 10;
+                return { ...p, drinks: (p.drinks || 0) - loss };
             }
             return p;
         });
         setPlayers(updatedPlayers);
-        // Do NOT clear teams here to allow persistent matching
-        setActiveTab('dashboard');
+
+        // Only switch to dashboard if not a rotation match OR if it's the last match of rotation
+        const isLastOfRotation = matchData.isRotationMatch && matchData.gameStep === 2;
+        const isFriendly = !matchData.isRotationMatch;
+
+        if (isLastOfRotation || isFriendly) {
+            setActiveTab('dashboard');
+        }
     };
 
     const resetTeams = () => {
@@ -192,9 +206,13 @@ function App() {
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <div className="px-3 py-1 bg-emerald-500/20 rounded-full border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
-                                                    <span className="text-[10px] font-black text-emerald-400 uppercase italic tracking-wider">Team {m.winnerTeam + 1} WINNER</span>
+                                                    <span className="text-[10px] font-black text-emerald-400 uppercase italic tracking-wider">
+                                                        {m.isRotationMatch ? `Team ${m.absoluteWinnerIdx + 1}` : `Team ${m.winnerTeam + 1}`} WINNER
+                                                    </span>
                                                 </div>
-                                                <span className="text-xl font-black italic tracking-tighter uppercase text-white">${m.stake} <span className="text-[10px] text-gray-500 not-italic">賭注</span></span>
+                                                <span className="text-xl font-black italic tracking-tighter uppercase text-white">
+                                                    ${m.stake} <span className="text-[10px] text-gray-500 not-italic">{m.isRotationMatch ? m.roundName : 'Friendly'}</span>
+                                                </span>
                                             </div>
                                             {isAdmin && (
                                                 <button
