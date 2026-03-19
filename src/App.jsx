@@ -77,9 +77,9 @@ function App() {
                 
                 if (wasInWinner) {
                     wins += 1;
-                    drinks += (m.payout || 0) / 10;
+                    drinks += 1; // Win is always +1 drink
                 } else if (wasInLoser) {
-                    drinks -= (m.stake || 0) / 10;
+                    drinks -= 1; // Lose is always -1 drink
                 }
             });
             return { ...p, wins, drinks };

@@ -49,7 +49,7 @@ export default function StatsHub({ players, matches }) {
                                 <PlayerIcon icon={sortedByDrinks[0].icon} name={sortedByDrinks[0].name} className="w-8 h-8" />
                                 <p className="text-xl font-black truncate">{sortedByDrinks[0].name}</p>
                             </div>
-                            <p className="text-[10px] text-gray-500">{sortedByDrinks[0].drinks || 0} 支水</p>
+                            <p className="text-[10px] text-gray-500">{sortedByDrinks[0].drinks || 0} 飲</p>
                         </div>
                     ) : <p className="text-sm text-gray-600">暫無數據</p>}
                 </div>
@@ -86,7 +86,7 @@ export default function StatsHub({ players, matches }) {
                                     </td>
                                     <td className="px-5 py-4 text-center font-black text-emerald-400 text-base">{p.wins || 0}</td>
                                     <td className={`px-5 py-4 text-right font-black text-base ${(p.drinks || 0) >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
-                                        {(p.drinks || 0) >= 0 ? `+${(p.drinks || 0).toLocaleString(undefined, { maximumFractionDigits: 1 })}` : (p.drinks || 0).toLocaleString(undefined, { maximumFractionDigits: 1 })}
+                                        {(p.drinks || 0) >= 0 ? `+${(p.drinks || 0)}` : (p.drinks || 0)}
                                     </td>
                                 </tr>
                             ))}
