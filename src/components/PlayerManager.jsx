@@ -52,16 +52,53 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
         setSelectedIcon(EMOJIS[0]);
     };
 
-    const handleFileChange = (e) => {
+    const compressImage = (file, maxWidth = 128, maxHeight = 128) => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height *= maxWidth / width;
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxHeight) {
+                            width *= maxHeight / height;
+                            height = maxHeight;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.7));
+                };
+            };
+        });
+    };
+
+    const handleFileChange = async (e) => {
         const file = e.target.files[0];
         if (file) {
             setIsUploading(true);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setSelectedIcon(reader.result);
+            try {
+                const compressed = await compressImage(file);
+                setSelectedIcon(compressed);
+            } catch (error) {
+                console.error('Image processing failed:', error);
+                alert('相片處理失敗，請試下細啲嘅相。');
+            } finally {
                 setIsUploading(false);
-            };
-            reader.readAsDataURL(file);
+            }
         }
     };
 

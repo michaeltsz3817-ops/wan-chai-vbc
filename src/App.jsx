@@ -35,8 +35,15 @@ function App() {
 
     // Persistence
     useEffect(() => {
-        localStorage.setItem('vbc-players', JSON.stringify(players));
-        localStorage.setItem('vbc-matches', JSON.stringify(matches));
+        try {
+            localStorage.setItem('vbc-players', JSON.stringify(players));
+            localStorage.setItem('vbc-matches', JSON.stringify(matches));
+        } catch (error) {
+            if (error.name === 'QuotaExceededError') {
+                alert('瀏覽器儲存空間已滿！請嘗試刪除部分紀錄或減少相片數量。');
+            }
+            console.error('Persistence failed:', error);
+        }
     }, [players, matches]);
 
     // Data Migration: Strip legacy wins/drinks AND ensure all matches have IDs
