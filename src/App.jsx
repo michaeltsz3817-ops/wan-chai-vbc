@@ -71,20 +71,34 @@ function App() {
             let wins = 0;
             let losses = 0;
             let drinks = 0;
-            matches.forEach(m => {
+            let lastResults = []; // Track wins/losses for form
+
+            // Sort matches chronologically to calculate form correctly
+            const sortedMatches = [...matches].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            sortedMatches.forEach(m => {
                 if (!m.teams || m.winnerTeam === undefined) return;
                 const wasInWinner = m.teams[m.winnerTeam]?.some(wp => wp.id === p.id);
                 const wasInLoser = m.teams.flat().some(lp => lp.id === p.id) && !wasInWinner;
                 
                 if (wasInWinner) {
                     wins += 1;
-                    drinks += 1; // Win is always +1 drink
+                    drinks += 1;
+                    lastResults.push(1);
                 } else if (wasInLoser) {
                     losses += 1;
-                    drinks -= 1; // Lose is always -1 drink
+                    drinks -= 1;
+                    lastResults.push(-1);
                 }
             });
-            return { ...p, wins, losses, drinks };
+
+            // Recent Form: Average of last 3 matches participant's results (-1 to 1)
+            const recentGames = lastResults.slice(-3);
+            const form = recentGames.length > 0 
+                ? recentGames.reduce((acc, curr) => acc + curr, 0) / recentGames.length
+                : 0;
+
+            return { ...p, wins, losses, drinks, form };
         });
     }, [players, matches]);
 

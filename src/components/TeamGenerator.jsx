@@ -37,7 +37,14 @@ export default function TeamGenerator({ players, teams, setTeams, onReset }) {
         if (selectedPlayers.length < 2) return;
 
         const activePlayers = players.filter(p => selectedPlayers.includes(p.id));
-        const sorted = [...activePlayers].sort((a, b) => b.skill - a.skill);
+        
+        // Dynamic Skill: base skill + (form * weight)
+        // form is -1 to 1, weight of 0.5 means it can shift skill by half a point
+        const sorted = [...activePlayers].sort((a, b) => {
+            const effectiveSkillA = (a.skill || 3) + (a.form || 0) * 0.5;
+            const effectiveSkillB = (b.skill || 3) + (b.form || 0) * 0.5;
+            return effectiveSkillB - effectiveSkillA;
+        });
 
         const newTeams = Array.from({ length: numTeams }, () => []);
 
@@ -92,7 +99,12 @@ export default function TeamGenerator({ players, teams, setTeams, onReset }) {
                                 : 'bg-white/5 border-transparent grayscale brightness-50 opacity-40'
                                 }`}
                         >
-                            <PlayerIcon icon={p.icon} name={p.name} className="w-10 h-10" />
+                            <div className="relative">
+                                <PlayerIcon icon={p.icon} name={p.name} className="w-10 h-10" />
+                                {p.form !== 0 && (
+                                    <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-[#050505] animate-pulse ${p.form > 0 ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                )}
+                            </div>
                             <span className="text-[10px] font-black truncate w-full text-center uppercase tracking-tighter">{p.name}</span>
                         </button>
                     ))}
@@ -122,7 +134,7 @@ export default function TeamGenerator({ players, teams, setTeams, onReset }) {
                 <div className="grid grid-cols-1 gap-4">
                     <div className="flex items-center justify-between px-2 pt-4">
                         <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">分隊結果</h3>
-                        <p className="text-[8px] font-bold text-gray-700 uppercase tracking-widest italic">使用 SNAKE DRAFT 演算法平衡實力</p>
+                        <p className="text-[8px] font-bold text-emerald-400 uppercase tracking-widest italic animate-pulse">動態實力平衡已開啟 (FORM ON)</p>
                     </div>
                     <AnimatePresence>
                         {teams.map((team, idx) => (
@@ -148,7 +160,14 @@ export default function TeamGenerator({ players, teams, setTeams, onReset }) {
                                         <div key={p.id} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 group-hover:bg-white/10 transition-colors">
                                             <div className="flex items-center gap-3">
                                                 <PlayerIcon icon={p.icon} name={p.name} className="w-7 h-7" />
-                                                <span className="font-bold text-sm">{p.name}</span>
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-sm">{p.name}</span>
+                                                    {p.form !== 0 && (
+                                                        <span className={`text-[8px] font-bold uppercase tracking-widest ${p.form > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                            {p.form > 0 ? 'HOT FORM 🔥' : 'COLD FORM 🧊'}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                             <div className="flex gap-0.5">
                                                 {[1, 2, 3, 4, 5].map(s => (

@@ -135,27 +135,27 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
                         <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${editingId ? 'text-yellow-500' : 'text-emerald-400'}`}>
                             2. {editingId ? '修正' : '輸入'}你的大名
                         </label>
-                        <div className="flex gap-3">
+                        <div className="flex flex-col sm:flex-row gap-3">
                             <input
                                 type="text"
                                 value={newName}
                                 onChange={(e) => setNewName(e.target.value)}
                                 placeholder="在此輸入..."
-                                className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-5 py-4 outline-none focus:border-emerald-500 focus:bg-white/10 transition-all font-black text-lg placeholder:text-gray-700"
+                                className="flex-1 w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 outline-none focus:border-emerald-500 focus:bg-white/10 transition-all font-black text-lg placeholder:text-gray-700"
                             />
                             {editingId ? (
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 w-full sm:w-auto">
                                     <button
                                         type="button"
                                         onClick={cancelEdit}
-                                        className="px-4 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 active:scale-95 transition-all"
+                                        className="flex-1 sm:px-6 bg-white/5 rounded-2xl py-4 flex items-center justify-center border border-white/10 active:scale-95 transition-all"
                                     >
                                         <X className="w-6 h-6 text-gray-400" />
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={!newName.trim() || isUploading}
-                                        className="px-8 bg-yellow-500 rounded-2xl flex items-center justify-center shadow-xl shadow-yellow-500/20 active:scale-95 transition-all text-black"
+                                        className="flex-[2] sm:px-10 bg-yellow-500 rounded-2xl py-4 flex items-center justify-center shadow-xl shadow-yellow-500/20 active:scale-95 transition-all text-black"
                                     >
                                         <Check className="w-6 h-6" />
                                     </button>
@@ -164,7 +164,7 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
                                 <button
                                     type="submit"
                                     disabled={!newName.trim() || isUploading}
-                                    className="px-8 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-500/20 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale"
+                                    className="w-full sm:w-auto sm:px-8 bg-emerald-500 rounded-2xl py-4 flex items-center justify-center shadow-xl shadow-emerald-500/20 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale"
                                 >
                                     <UserPlus className="w-6 h-6 text-white" />
                                 </button>
