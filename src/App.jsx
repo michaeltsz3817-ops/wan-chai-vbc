@@ -8,6 +8,8 @@ import MatchSession from './components/MatchSession';
 import StatsHub from './components/StatsHub';
 import DailyReport from './components/DailyReport';
 
+import { Dock } from './components/ui/dock-two';
+
 function App() {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [isAdmin, setIsAdmin] = useState(false);
@@ -122,13 +124,13 @@ function App() {
         };
         setMatches([matchWithId, ...matches]);
 
-        // Only switch to dashboard if not a rotation match OR if it's the last match of rotation
+        // Only switch to dashboard if it's the last match of a 3-team rotation
         const isLastOfRotation = matchData.isRotationMatch && matchData.gameStep === 2;
-        const isFriendly = !matchData.isRotationMatch;
-
-        if (isLastOfRotation || isFriendly) {
+        
+        if (isLastOfRotation) {
             setActiveTab('dashboard');
         }
+        // For 2-team (friendly) matches or intermediate rotation rounds, stay where we are.
     };
 
     const resetTeams = () => {
@@ -136,6 +138,9 @@ function App() {
             setTeams([]);
             setGameStep(0);
             setG1WinnerIdx(null);
+            // After reset, we might want to stay on the teaming page or go back to dashboard
+            // But the user said "don't reset stuff... have a button for us to reset"
+            // So if they manually reset, it's fine to go back to teaming.
             setActiveTab('teaming');
         }
     };
@@ -188,7 +193,13 @@ function App() {
 
                     {activeTab === 'teaming' && (
                         <motion.div key="teaming" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                            <TeamGenerator players={playersWithStats} teams={teams} setTeams={setTeams} onReset={resetTeams} />
+                            <TeamGenerator 
+                                players={playersWithStats} 
+                                teams={teams} 
+                                setTeams={setTeams} 
+                                onReset={resetTeams} 
+                                onGenerateComplete={() => setActiveTab('play')}
+                            />
                         </motion.div>
                     )}
 
@@ -292,38 +303,17 @@ function App() {
                 </AnimatePresence>
             </main>
 
-            <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-4 glass rounded-[40px] border border-white/10 shadow-2xl flex items-center gap-6 md:gap-8 backdrop-blur-3xl scale-[0.9] origin-bottom md:scale-100">
-                <NavButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard />} label="總覽" />
-                <NavButton active={activeTab === 'teaming'} onClick={() => setActiveTab('teaming')} icon={<Users />} label="組隊" />
-
-                <button
-                    onClick={() => setActiveTab('play')}
-                    className="w-16 h-16 bg-emerald-500 rounded-[24px] flex items-center justify-center shadow-2xl shadow-emerald-500/40 -mt-16 active:scale-90 transition-all hover:rotate-12 group"
-                >
-                    <Plus className="w-10 h-10 text-white group-hover:scale-110 transition-transform" />
-                </button>
-
-                <NavButton active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<History />} label="紀錄" />
-                <NavButton active={activeTab === 'settlement'} onClick={() => setActiveTab('settlement')} icon={<DollarSign />} label="結算" />
-                <NavButton active={activeTab === 'players'} onClick={() => setActiveTab('players')} icon={<Trophy />} label="成員" />
-            </nav>
+            <Dock 
+                items={[
+                    { active: activeTab === 'dashboard', onClick: () => setActiveTab('dashboard'), icon: LayoutDashboard, label: "總覽" },
+                    { active: activeTab === 'teaming', onClick: () => setActiveTab('teaming'), icon: Users, label: "組隊" },
+                    { type: 'special', onClick: () => setActiveTab('play'), icon: Plus, label: "比賽" },
+                    { active: activeTab === 'history', onClick: () => setActiveTab('history'), icon: History, label: "紀錄" },
+                    { active: activeTab === 'settlement', onClick: () => setActiveTab('settlement'), icon: DollarSign, label: "結算" },
+                    { active: activeTab === 'players', onClick: () => setActiveTab('players'), icon: Trophy, label: "成員" },
+                ]}
+            />
         </div >
-    );
-}
-
-function NavButton({ active, onClick, icon, label }) {
-    return (
-        <button
-            onClick={onClick}
-            className={`flex flex-col items-center gap-1 transition-all active:scale-90 px-2 rounded-xl ${active ? 'text-emerald-400 scale-110' : 'text-gray-500 hover:text-gray-300'
-                }`}
-        >
-            <div className={`p-1 rounded-lg transition-colors ${active ? 'bg-emerald-500/10' : ''}`}>
-                {React.cloneElement(icon, { className: 'w-5 h-5' })}
-            </div>
-            <span className="text-[8px] font-black uppercase tracking-widest">{label}</span>
-            {active && <motion.div layoutId="nav-dot" className="w-1 h-1 bg-emerald-500 rounded-full mt-0.5" />}
-        </button>
     );
 }
 

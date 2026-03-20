@@ -66,9 +66,13 @@ export default function MatchSession({
         if (gameStep === 2) currentMatchSubindices = [2, g1WinnerIdx]; // C vs Winner(G1)
     }
 
-    const handleFinish = () => {
+    const [isRecording, setIsRecording] = useState(false);
+
+    const handleFinish = async () => {
         if (winnerIndex === null) return;
 
+        setIsRecording(true);
+        
         // Current playing teams
         const playingTeams = currentMatchSubindices.map(idx => activeTeams[idx]);
         const winners = activeTeams[winnerIndex];
@@ -94,6 +98,11 @@ export default function MatchSession({
             gameStep: isThreeTeam ? gameStep : null
         });
 
+        // Small delay for visual feedback if staying on page
+        if (!isThreeTeam || gameStep < 2) {
+            await new Promise(resolve => setTimeout(resolve, 800));
+        }
+
         // Advance rotation if 3 teams
         if (isThreeTeam) {
             if (gameStep === 0) {
@@ -107,7 +116,9 @@ export default function MatchSession({
                 setG1WinnerIdx(null);
             }
         }
+        
         setWinnerIndex(null);
+        setIsRecording(false);
     };
 
     return (
@@ -123,13 +134,16 @@ export default function MatchSession({
                         </div>
                     )}
                 </div>
-                <button
-                    onClick={onResetTeams}
-                    className="p-3 bg-red-400/10 text-red-400 rounded-2xl hover:bg-red-400 hover:text-white transition-all active:scale-95"
-                    title="解散隊伍"
-                >
-                    <RefreshCw className="w-5 h-5" />
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={onResetTeams}
+                        className="p-3 bg-red-400/10 text-red-400 rounded-2xl hover:bg-red-400 hover:text-white transition-all active:scale-95 flex items-center gap-2 group"
+                        title="解散隊伍"
+                    >
+                        <RefreshCw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
+                        <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">解散重設</span>
+                    </button>
+                </div>
             </header>
 
             {isThreeTeam && (
@@ -213,12 +227,20 @@ export default function MatchSession({
 
             <button
                 onClick={handleFinish}
-                disabled={winnerIndex === null}
+                disabled={winnerIndex === null || isRecording}
                 className="w-full py-6 bg-emerald-500 font-black italic text-2xl tracking-tighter uppercase rounded-[40px] flex items-center justify-center gap-3 shadow-2xl shadow-emerald-500/40 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale relative group overflow-hidden"
             >
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                <span className="relative z-10">{isThreeTeam && gameStep < 2 ? '完成第 ' + (gameStep + 1) + ' 場' : '正式結算賽事'}</span>
-                <ArrowRight className="w-7 h-7 relative z-10" />
+                <span className="relative z-10">
+                    {isRecording ? '記錄中...' : 
+                     isThreeTeam && gameStep < 2 ? '完成第 ' + (gameStep + 1) + ' 場' : 
+                     '記錄比賽結果'}
+                </span>
+                {isRecording ? (
+                    <RefreshCw className="w-7 h-7 animate-spin relative z-10" />
+                ) : (
+                    <ArrowRight className="w-7 h-7 relative z-10" />
+                )}
             </button>
 
             <div className="p-6 glass rounded-[36px] flex items-center gap-5 text-[10px] font-black text-gray-500 uppercase tracking-widest bg-white/2 border border-white/5 leading-snug">

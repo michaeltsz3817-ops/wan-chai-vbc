@@ -15,7 +15,7 @@ const PlayerIcon = ({ icon, name, className = "w-6 h-6" }) => {
     );
 };
 
-export default function TeamGenerator({ players, teams, setTeams, onReset }) {
+export default function TeamGenerator({ players, teams, setTeams, onReset, onGenerateComplete }) {
     const [numTeams, setNumTeams] = useState(2);
     const [selectedPlayers, setSelectedPlayers] = useState([]);
 
@@ -57,6 +57,8 @@ export default function TeamGenerator({ players, teams, setTeams, onReset }) {
         });
 
         setTeams(newTeams);
+        // Automatically switch to match page
+        if (onGenerateComplete) onGenerateComplete();
     };
 
     const [draggedPlayer, setDraggedPlayer] = useState(null);
