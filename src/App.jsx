@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trophy, Users, History, DollarSign, Plus, LayoutDashboard, Trash2, ShieldCheck, HelpCircle, Camera } from 'lucide-react';
+import { Trophy, Users, History, DollarSign, Plus, LayoutDashboard, Trash2, ShieldCheck, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import PlayerManager from './components/PlayerManager';
@@ -9,7 +9,6 @@ import StatsHub from './components/StatsHub';
 import DailyReport from './components/DailyReport';
 
 import { Dock } from './components/ui/dock-two';
-import ImageHover from './components/ui/link-hover';
 
 function App() {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -158,14 +157,6 @@ function App() {
                     {activeTab === 'play' && <motion.div key="play" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}><MatchSession activeTeams={teams} onComplete={handleMatchComplete} onResetTeams={resetTeams} gameStep={gameStep} setGameStep={setGameStep} g1WinnerIdx={g1WinnerIdx} setG1WinnerIdx={setG1WinnerIdx} /></motion.div>}
                     {activeTab === 'settlement' && <motion.div key="settlement" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><DailyReport players={playersWithStats} matches={matches} /></motion.div>}
                     {activeTab === 'players' && <motion.div key="players" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><PlayerManager players={playersWithStats} onAdd={addPlayer} onDelete={deletePlayer} onUpdate={updatePlayer} onResetAll={resetAllStats} isAdmin={isAdmin} /></motion.div>}
-                    {activeTab === 'gallery' && (
-                        <motion.div key="gallery" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                            <header className="flex items-center justify-between px-1">
-                                <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">熱血瞬間 (Moments)</h3>
-                            </header>
-                            <ImageHover />
-                        </motion.div>
-                    )}
                     {activeTab === 'history' && (
                         <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6 pb-20">
                             <header className="flex items-center justify-between"><h3 className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1">歷史對仗</h3></header>
@@ -197,7 +188,6 @@ function App() {
                 items={[
                     { active: activeTab === 'dashboard', onClick: () => setActiveTab('dashboard'), icon: LayoutDashboard, label: "總覽" },
                     { active: activeTab === 'teaming', onClick: () => setActiveTab('teaming'), icon: Users, label: "組隊" },
-                    { active: activeTab === 'gallery', onClick: () => setActiveTab('gallery'), icon: Camera, label: "瞬間" },
                     { type: 'special', onClick: () => setActiveTab('play'), icon: Plus, label: "比賽" },
                     { active: activeTab === 'history', onClick: () => setActiveTab('history'), icon: History, label: "紀錄" },
                     { active: activeTab === 'settlement', onClick: () => setActiveTab('settlement'), icon: DollarSign, label: "結算" },
