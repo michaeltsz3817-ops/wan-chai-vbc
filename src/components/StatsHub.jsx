@@ -187,6 +187,18 @@ export default function StatsHub({ players, matches }) {
                                         <span className="font-bold flex items-center gap-2 text-base">
                                             <PlayerIcon icon={p.icon} name={p.name} className="w-7 h-7" />
                                             {p.name}
+                                            <div className="flex gap-1">
+                                                {idx === 0 && (
+                                                    <span className="bg-yellow-500/20 text-yellow-500 text-[8px] px-1.5 py-0.5 rounded-full font-black flex items-center gap-0.5 border border-yellow-500/30">
+                                                        <Trophy className="w-2 h-2" /> MVP
+                                                    </span>
+                                                )}
+                                                {p.isHot && (
+                                                    <span className="bg-orange-500/20 text-orange-400 text-[8px] px-1.5 py-0.5 rounded-full font-black flex items-center gap-0.5 border border-orange-500/30">
+                                                        <Zap className="w-2 h-2" /> HOT
+                                                    </span>
+                                                )}
+                                            </div>
                                         </span>
                                     </td>
                                     <td className="px-5 py-4 text-center font-black text-emerald-400 text-base">{p.wins || 0}</td>

@@ -67,6 +67,7 @@ export default function MatchSession({
     }
 
     const [isRecording, setIsRecording] = useState(false);
+    const [showCelebration, setShowCelebration] = useState(false);
 
     const handleFinish = async () => {
         if (winnerIndex === null) return;
@@ -99,6 +100,9 @@ export default function MatchSession({
         });
 
         // Small delay for visual feedback if staying on page
+        setShowCelebration(true);
+        setTimeout(() => setShowCelebration(false), 2000);
+
         if (!isThreeTeam || gameStep < 2) {
             await new Promise(resolve => setTimeout(resolve, 800));
         }
@@ -121,8 +125,42 @@ export default function MatchSession({
         setIsRecording(false);
     };
 
+    const Confetti = () => (
+        <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+            {[...Array(30)].map((_, i) => (
+                <motion.div
+                    key={i}
+                    initial={{ 
+                        opacity: 1, 
+                        y: '100vh', 
+                        x: Math.random() * 100 + 'vw',
+                        rotate: 0,
+                        scale: Math.random() * 0.5 + 0.5
+                    }}
+                    animate={{ 
+                        opacity: 0, 
+                        y: '-10vh', 
+                        x: (Math.random() * 100 - 50) + (Math.random() * 100) + 'vw',
+                        rotate: 360 * (Math.random() > 0.5 ? 1 : -1),
+                        scale: 0
+                    }}
+                    transition={{ 
+                        duration: 1.5 + Math.random(), 
+                        ease: "easeOut",
+                        delay: Math.random() * 0.2
+                    }}
+                    className={`absolute w-3 h-3 ${['bg-emerald-500', 'bg-yellow-500', 'bg-blue-500', 'bg-white'][Math.floor(Math.random() * 4)]} rounded-sm`}
+                />
+            ))}
+        </div>
+    );
+
     return (
         <div className="space-y-8 text-white pb-32">
+            <AnimatePresence>
+                {showCelebration && <Confetti />}
+            </AnimatePresence>
+
             <header className="flex items-center justify-between px-1">
                 <div className="space-y-1">
                     <h2 className="text-3xl font-black italic tracking-tighter uppercase">比賽 <span className="text-emerald-400">ON AIR</span></h2>

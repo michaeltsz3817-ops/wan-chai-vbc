@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trophy, Users, History, DollarSign, Plus, LayoutDashboard, Trash2, ShieldCheck, HelpCircle } from 'lucide-react';
+import { Trophy, Users, History, DollarSign, Plus, LayoutDashboard, Trash2, ShieldCheck, HelpCircle, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import PlayerManager from './components/PlayerManager';
@@ -9,6 +9,9 @@ import StatsHub from './components/StatsHub';
 import DailyReport from './components/DailyReport';
 
 import { Dock } from './components/ui/dock-two';
+import ImageHover from './components/ui/link-hover';
+
+const DEFAULT_SKILLS = { atk: 1, def: 1, srv: 1, set: 1, blk: 1, pwr: 1 };
 
 function App() {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -16,11 +19,11 @@ function App() {
     const [players, setPlayers] = useState(() => {
         const saved = localStorage.getItem('vbc-players');
         return saved ? JSON.parse(saved) : [
-            { id: '1', name: '阿強', icon: '🔥', skill: 5, wins: 0, drinks: 0 },
-            { id: '2', name: '小明', icon: '🦁', skill: 2, wins: 0, drinks: 0 },
-            { id: '3', name: '大師兄', icon: '⚡️', skill: 4, wins: 0, drinks: 0 },
-            { id: '4', name: '波子', icon: '🧤', skill: 3, wins: 0, drinks: 0 },
-            { id: '5', name: '阿飛', icon: '🦅', skill: 4, wins: 0, drinks: 0 },
+            { id: '1', name: '阿強', icon: '🔥', skill: 5, skills: { ...DEFAULT_SKILLS, atk: 5, pwr: 4 } },
+            { id: '2', name: '小明', icon: '🦁', skill: 2, skills: { ...DEFAULT_SKILLS, def: 3 } },
+            { id: '3', name: '大師兄', icon: '⚡️', skill: 4, skills: { ...DEFAULT_SKILLS, atk: 4, srv: 4 } },
+            { id: '4', name: '波子', icon: '🧤', skill: 3, skills: { ...DEFAULT_SKILLS, set: 4 } },
+            { id: '5', name: '阿飛', icon: '🦅', skill: 4, skills: { ...DEFAULT_SKILLS, blk: 4 } },
         ];
     });
 
@@ -30,8 +33,6 @@ function App() {
     });
 
     const [teams, setTeams] = useState([]);
-
-    // Session State (Persistent between tab switches)
     const [gameStep, setGameStep] = useState(0);
     const [g1WinnerIdx, setG1WinnerIdx] = useState(null);
 
@@ -41,21 +42,18 @@ function App() {
             localStorage.setItem('vbc-players', JSON.stringify(players));
             localStorage.setItem('vbc-matches', JSON.stringify(matches));
         } catch (error) {
-            if (error.name === 'QuotaExceededError') {
-                alert('瀏覽器儲存空間已滿！請嘗試刪除部分紀錄或減少相片數量。');
-            }
             console.error('Persistence failed:', error);
         }
     }, [players, matches]);
 
-    // Data Migration
+    // Data Migration: Ensure all players have skills object
     useEffect(() => {
-        const hasLegacyData = players.some(p => p.hasOwnProperty('wins') || p.hasOwnProperty('drinks'));
+        const needsSkills = players.some(p => !p.skills);
         const hasMatchesWithoutId = matches.some(m => !m.id);
         
-        if (hasLegacyData || hasMatchesWithoutId) {
-            if (hasLegacyData) {
-                setPlayers(prev => prev.map(({ wins, drinks, ...p }) => p));
+        if (needsSkills || hasMatchesWithoutId) {
+            if (needsSkills) {
+                setPlayers(prev => prev.map(p => p.skills ? p : { ...p, skills: { ...DEFAULT_SKILLS } }));
             }
             if (hasMatchesWithoutId) {
                 setMatches(prev => prev.map(m => m.id ? m : { ...m, id: Date.now() + Math.random().toString(36).substr(2, 9) }));
@@ -64,8 +62,7 @@ function App() {
     }, [players, matches]);
 
     const addPlayer = (player) => {
-        const { wins, drinks, ...purePlayer } = player;
-        setPlayers([...players, purePlayer]);
+        setPlayers([...players, { ...player, skills: { ...DEFAULT_SKILLS } }]);
     };
     const deletePlayer = (id) => setPlayers(players.filter(p => p.id !== id));
     const updatePlayer = (id, updates) => {
@@ -77,25 +74,49 @@ function App() {
             let wins = 0;
             let losses = 0;
             let drinks = 0;
+            let winStreak = 0;
+            let currentStreak = 0;
             let lastResults = [];
+            
             const sortedMatches = [...matches].sort((a, b) => new Date(a.date) - new Date(b.date));
+            
             sortedMatches.forEach(m => {
                 if (!m.teams || m.winnerTeam === undefined) return;
                 const wasInWinner = m.teams[m.winnerTeam]?.some(wp => wp.id === p.id);
                 const wasInLoser = m.teams.flat().some(lp => lp.id === p.id) && !wasInWinner;
-                if (wasInWinner) { wins += 1; drinks += 1; lastResults.push(1); } 
-                else if (wasInLoser) { losses += 1; drinks -= 1; lastResults.push(-1); }
+                
+                if (wasInWinner) {
+                    wins += 1;
+                    drinks += 1;
+                    lastResults.push(1);
+                    currentStreak += 1;
+                    winStreak = Math.max(winStreak, currentStreak);
+                } else if (wasInLoser) {
+                    losses += 1;
+                    drinks -= 1;
+                    lastResults.push(-1);
+                    currentStreak = 0;
+                }
             });
-            const recentGames = lastResults.slice(-3);
-            const form = recentGames.length > 0 ? recentGames.reduce((acc, curr) => acc + curr, 0) / recentGames.length : 0;
-            return { ...p, wins, losses, drinks, form };
+
+            const totalMatches = wins + losses;
+            const earnedPoints = Math.floor(totalMatches / 10);
+            const spentPoints = Object.values(p.skills || DEFAULT_SKILLS).reduce((a, b) => a + b, 0) - Object.keys(DEFAULT_SKILLS).length;
+            const availablePoints = Math.max(0, earnedPoints - spentPoints);
+
+            return { 
+                ...p, 
+                wins, 
+                losses, 
+                drinks, 
+                totalMatches,
+                earnedPoints,
+                availablePoints,
+                winStreak,
+                isHot: currentStreak >= 3
+            };
         });
     }, [players, matches]);
-
-    const deleteMatch = (id) => {
-        if (!window.confirm('確定要刪除這場賽事紀錄嗎？')) return;
-        setMatches(prev => prev.filter(m => m.id !== id));
-    };
 
     const handleMatchComplete = (matchData) => {
         const matchWithId = {
