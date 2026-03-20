@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Filter, RefreshCw, Trophy, Play, Trash2 } from 'lucide-react';
+import { Users, Filter, RefreshCw, Trophy, Play, Trash2, GripVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const PlayerIcon = ({ icon, name, className = "w-6 h-6" }) => {
@@ -60,15 +60,34 @@ export default function TeamGenerator({ players, teams, setTeams, onReset }) {
     };
 
     const [draggedPlayer, setDraggedPlayer] = useState(null);
+    const [dragOverTeam, setDragOverTeam] = useState(null);
 
     const handleDragStart = (e, player, fromTeamIdx) => {
         setDraggedPlayer({ player, fromTeamIdx });
         e.dataTransfer.effectAllowed = "move";
+        // Mobile browsers sometimes need a little help
+        e.dataTransfer.setData('text/plain', player.id);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedPlayer(null);
+        setDragOverTeam(null);
+    };
+
+    const handleDragOver = (e, idx) => {
+        e.preventDefault();
+        if (dragOverTeam !== idx) {
+            setDragOverTeam(idx);
+        }
     };
 
     const handleDrop = (e, toTeamIdx) => {
         e.preventDefault();
-        if (!draggedPlayer || draggedPlayer.fromTeamIdx === toTeamIdx) return;
+        setDragOverTeam(null);
+        if (!draggedPlayer || draggedPlayer.fromTeamIdx === toTeamIdx) {
+            setDraggedPlayer(null);
+            return;
+        }
 
         const { player, fromTeamIdx } = draggedPlayer;
         const newTeams = [...teams];
@@ -80,6 +99,18 @@ export default function TeamGenerator({ players, teams, setTeams, onReset }) {
         
         setTeams(newTeams);
         setDraggedPlayer(null);
+    };
+
+    const cycleTeam = (player, fromTeamIdx) => {
+        const newTeams = [...teams];
+        const nextTeamIdx = (fromTeamIdx + 1) % teams.length;
+        
+        // Remove from source team
+        newTeams[fromTeamIdx] = newTeams[fromTeamIdx].filter(p => p.id !== player.id);
+        // Add to target team
+        newTeams[nextTeamIdx] = [...newTeams[nextTeamIdx], player];
+        
+        setTeams(newTeams);
     };
 
     return (
@@ -157,7 +188,7 @@ export default function TeamGenerator({ players, teams, setTeams, onReset }) {
                 <div className="grid grid-cols-1 gap-4">
                     <div className="flex items-center justify-between px-2 pt-4">
                         <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">分隊結果</h3>
-                        <p className="text-[8px] font-bold text-gray-600 uppercase tracking-widest italic">提示：可手動將成員拖拉到另一隊進行微調</p>
+                        <p className="text-[8px] font-bold text-gray-600 uppercase tracking-widest italic whitespace-nowrap overflow-hidden text-ellipsis">提示：點擊或拖拉左邊圖示 ⠿ 可手動換隊微調</p>
                     </div>
                     <AnimatePresence>
                         {teams.map((team, idx) => (
@@ -166,9 +197,10 @@ export default function TeamGenerator({ players, teams, setTeams, onReset }) {
                                 initial={{ opacity: 0, scale: 0.9, y: 10 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 key={idx}
-                                onDragOver={(e) => e.preventDefault()}
+                                onDragOver={(e) => handleDragOver(e, idx)}
+                                onDragLeave={() => setDragOverTeam(null)}
                                 onDrop={(e) => handleDrop(e, idx)}
-                                className={`p-6 glass rounded-[32px] border transition-all relative overflow-hidden group ${draggedPlayer && draggedPlayer.fromTeamIdx !== idx ? 'border-emerald-500/50 bg-emerald-500/5 scale-[1.02]' : 'border-white/5'}`}
+                                className={`p-6 glass rounded-[32px] border transition-all relative overflow-hidden group ${dragOverTeam === idx ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)] bg-emerald-500/5' : 'border-white/5'}`}
                             >
                                 <div className={`absolute top-0 left-0 w-2 h-full ${idx === 0 ? 'bg-blue-500' : idx === 1 ? 'bg-emerald-500' : 'bg-purple-500'
                                     }`} />
@@ -180,17 +212,24 @@ export default function TeamGenerator({ players, teams, setTeams, onReset }) {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-2 min-h-[50px]">
+                                <div className="grid grid-cols-1 gap-2 min-h-[60px]">
                                     {team.map(p => (
                                         <motion.div 
                                             layout
                                             key={p.id} 
                                             draggable
                                             onDragStart={(e) => handleDragStart(e, p, idx)}
-                                            onDragEnd={() => setDraggedPlayer(null)}
-                                            className="cursor-move active:cursor-grabbing flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 hover:border-white/20 hover:bg-white/10 transition-all group/item"
+                                            onDragEnd={handleDragEnd}
+                                            className="group/item relative flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 hover:border-white/20 hover:bg-white/10 transition-all select-none"
                                         >
-                                            <div className="flex items-center gap-3 pointer-events-none">
+                                            <div className="flex items-center gap-3">
+                                                <div 
+                                                    onClick={() => cycleTeam(p, idx)}
+                                                    className="cursor-pointer active:scale-95 p-1 -ml-1 text-gray-600 hover:text-emerald-400 transition-all rounded-md hover:bg-emerald-500/10"
+                                                    title="點擊切換隊伍 / 按住拖拉"
+                                                >
+                                                    <GripVertical className="w-4 h-4" />
+                                                </div>
                                                 <PlayerIcon icon={p.icon} name={p.name} className="w-7 h-7" />
                                                 <div className="flex flex-col">
                                                     <span className="font-bold text-sm tracking-tight">{p.name}</span>
@@ -201,13 +240,18 @@ export default function TeamGenerator({ players, teams, setTeams, onReset }) {
                                                     )}
                                                 </div>
                                             </div>
-                                            <div className="flex gap-0.5 pointer-events-none opacity-50 group-hover/item:opacity-100 transition-opacity">
+                                            <div className="flex gap-0.5 opacity-50 group-hover/item:opacity-100 transition-opacity">
                                                 {[1, 2, 3, 4, 5].map(s => (
                                                     <div key={s} className={`w-1 h-1 rounded-full ${s <= (p.skill || 3) ? 'bg-emerald-400' : 'bg-white/10'}`} />
                                                 ))}
                                             </div>
                                         </motion.div>
                                     ))}
+                                    {team.length === 0 && (
+                                        <div className="h-12 flex items-center justify-center border-2 border-dashed border-white/5 rounded-2xl text-[8px] text-gray-600 font-bold uppercase tracking-widest">
+                                            拖放成員到此隊伍
+                                        </div>
+                                    )}
                                 </div>
                             </motion.div>
                         ))}
