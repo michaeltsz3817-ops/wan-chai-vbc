@@ -18,9 +18,9 @@ function App() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [players, setPlayers] = useState(() => {
         try {
-            const saved = localStorage.getItem('vbc-players');
+            const saved = localStorage.getItem('vbc-players') || localStorage.getItem('vbc_players');
             const parsed = saved ? JSON.parse(saved) : null;
-            return parsed || [
+            return (Array.isArray(parsed) ? parsed.filter(Boolean) : null) || [
                 { id: '1', name: '阿強', icon: '🔥', skill: 5, skills: { ...DEFAULT_SKILLS, atk: 5, pwr: 4 } },
                 { id: '2', name: '小明', icon: '🦁', skill: 2, skills: { ...DEFAULT_SKILLS, def: 3 } },
                 { id: '3', name: '大師兄', icon: '⚡️', skill: 4, skills: { ...DEFAULT_SKILLS, atk: 4, srv: 4 } },
@@ -35,9 +35,9 @@ function App() {
 
     const [matches, setMatches] = useState(() => {
         try {
-            const saved = localStorage.getItem('vbc-matches');
+            const saved = localStorage.getItem('vbc-matches') || localStorage.getItem('vbc_matches');
             const parsed = saved ? JSON.parse(saved) : null;
-            return parsed || [];
+            return (Array.isArray(parsed) ? parsed.filter(Boolean) : null) || [];
         } catch (e) {
             console.error('Failed to parse matches:', e);
             return [];
@@ -204,36 +204,38 @@ function App() {
 
             <main className="max-w-lg p-5 mx-auto relative z-10">
                 <AnimatePresence mode="wait">
-                    {activeTab === 'dashboard' && <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><StatsHub players={playersWithStats} matches={matches} /></motion.div>}
-                    {activeTab === 'teaming' && <motion.div key="teaming" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><TeamGenerator players={playersWithStats} teams={teams} setTeams={setTeams} onReset={resetTeams} onGenerateComplete={() => setActiveTab('play')} /></motion.div>}
-                    {activeTab === 'play' && <motion.div key="play" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}><MatchSession activeTeams={teams} onComplete={handleMatchComplete} onResetTeams={resetTeams} gameStep={gameStep} setGameStep={setGameStep} g1WinnerIdx={g1WinnerIdx} setG1WinnerIdx={setG1WinnerIdx} /></motion.div>}
-                    {activeTab === 'settlement' && <motion.div key="settlement" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><DailyReport players={playersWithStats} matches={matches} /></motion.div>}
-                    {activeTab === 'players' && <motion.div key="players" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><PlayerManager players={playersWithStats} onAdd={addPlayer} onDelete={deletePlayer} onUpdate={updatePlayer} onResetAll={resetAllStats} isAdmin={isAdmin} /></motion.div>}
+                    {activeTab === 'dashboard' && <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><StatsHub players={playersWithStats || []} matches={matches || []} /></motion.div>}
+                    {activeTab === 'teaming' && <motion.div key="teaming" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><TeamGenerator players={playersWithStats || []} teams={teams || []} setTeams={setTeams} onReset={resetTeams} onGenerateComplete={() => setActiveTab('play')} /></motion.div>}
+                    {activeTab === 'play' && <motion.div key="play" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}><MatchSession activeTeams={teams || []} onComplete={handleMatchComplete} onResetTeams={resetTeams} gameStep={gameStep} setGameStep={setGameStep} g1WinnerIdx={g1WinnerIdx} setG1WinnerIdx={setG1WinnerIdx} /></motion.div>}
+                    {activeTab === 'settlement' && <motion.div key="settlement" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><DailyReport players={playersWithStats || []} matches={matches || []} /></motion.div>}
+                    {activeTab === 'players' && <motion.div key="players" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><PlayerManager players={playersWithStats || []} onAdd={addPlayer} onDelete={deletePlayer} onUpdate={updatePlayer} onResetAll={resetAllStats} isAdmin={isAdmin} /></motion.div>}
                     {activeTab === 'history' && (
                         <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6 pb-20">
                             <header className="flex items-center justify-between"><h3 className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1">歷史對仗</h3></header>
                             <div className="space-y-4">
-                                {matches.map((m) => (
-                                    <motion.div layout key={m.id} className="p-6 glass rounded-[32px] flex flex-col gap-4 group relative border border-white/5 hover:border-white/10 transition-all overflow-hidden">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="px-3 py-1 bg-emerald-500/20 rounded-full border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
-                                                    <span className="text-[10px] font-black text-emerald-400 uppercase italic tracking-wider">{m.isRotationMatch && m.absoluteWinnerIdx !== undefined ? `Team ${m.absoluteWinnerIdx + 1}` : `Team ${(m.winnerTeam ?? 0) + 1}`} WINNER</span>
-                                                    {m.scores && (
-                                                        <span className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">
-                                                            ({m.scores[0]}-{m.scores[1]})
-                                                        </span>
-                                                    )}
+                                {(matches || []).map((m) => (
+                                    m && (
+                                        <motion.div layout key={m.id} className="p-6 glass rounded-[32px] flex flex-col gap-4 group relative border border-white/5 hover:border-white/10 transition-all overflow-hidden">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="px-3 py-1 bg-emerald-500/20 rounded-full border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
+                                                        <span className="text-[10px] font-black text-emerald-400 uppercase italic tracking-wider">{m.isRotationMatch && m.absoluteWinnerIdx !== undefined ? `Team ${m.absoluteWinnerIdx + 1}` : `Team ${(m.winnerTeam ?? 0) + 1}`} WINNER</span>
+                                                        {m.scores && (
+                                                            <span className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">
+                                                                ({m.scores[0]}-{m.scores[1]})
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <span className="text-xl font-black italic tracking-tighter uppercase text-white">${m.stake || 0} <span className="text-[10px] text-gray-500 not-italic">{m.isRotationMatch ? (m.roundName || 'Rotation') : 'Friendly'}</span></span>
                                                 </div>
-                                                <span className="text-xl font-black italic tracking-tighter uppercase text-white">${m.stake} <span className="text-[10px] text-gray-500 not-italic">{m.isRotationMatch ? (m.roundName || 'Rotation') : 'Friendly'}</span></span>
+                                                {isAdmin && <button onClick={(e) => { e.stopPropagation(); deleteMatch(m.id); }} className="p-3 bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-lg active:scale-95 z-20 relative"><Trash2 className="w-4 h-4" /></button>}
                                             </div>
-                                            {isAdmin && <button onClick={(e) => { e.stopPropagation(); deleteMatch(m.id); }} className="p-3 bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-lg active:scale-95 z-20 relative"><Trash2 className="w-4 h-4" /></button>}
-                                        </div>
-                                        <div className="space-y-3">
-                                            <div className="flex flex-wrap gap-2">{m.teams && m.teams[m.winnerTeam] && m.teams[m.winnerTeam].map(p => (<div key={p.id} className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20"><span className="text-[10px] font-black uppercase text-emerald-400">{p.name}</span></div>))}</div>
-                                            <div className="h-[1px] bg-white/5 w-full" /><p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest pl-1">{new Date(m.date).toLocaleString('zh-HK', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })} HKT</p>
-                                        </div>
-                                    </motion.div>
+                                            <div className="space-y-3">
+                                                <div className="flex flex-wrap gap-2">{m.teams && m.teams[m.winnerTeam] && m.teams[m.winnerTeam].map(p => p && (<div key={p.id} className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20"><span className="text-[10px] font-black uppercase text-emerald-400">{p.name}</span></div>))}</div>
+                                                <div className="h-[1px] bg-white/5 w-full" /><p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest pl-1">{m.date ? new Date(m.date).toLocaleString('zh-HK', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Unknown Date'} HKT</p>
+                                            </div>
+                                        </motion.div>
+                                    )
                                 ))}
                             </div>
                         </motion.div>
