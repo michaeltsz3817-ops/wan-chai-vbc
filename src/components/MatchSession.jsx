@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Coffee, Check, X, AlertCircle, RefreshCw, Trophy, Users, ArrowRight } from 'lucide-react';
+import { DollarSign, Coffee, Check, X, AlertCircle, RefreshCw, Trophy, Users, ArrowRight, Minus, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const PlayerIcon = ({ icon, name, className = "w-6 h-6" }) => {
