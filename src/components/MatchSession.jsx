@@ -218,29 +218,7 @@ export default function MatchSession({
                 ))}
             </div>
 
-            {/* Score Input Section */}
-            <div className="space-y-4">
-                <h3 className="text-[10px] font-black text-gray-700 uppercase tracking-widest text-center italic">錄入分數 (SET SCORE)</h3>
-                <div className="flex items-center justify-center gap-8">
-                    <div className="text-center space-y-2">
-                        <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest">TEAM 1</p>
-                        <div className="flex items-center gap-3 bg-white/5 p-2 rounded-[24px] border border-white/10">
-                            <button onClick={() => setScore1(Math.max(0, score1 - 1))} className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 active:scale-90 transition-all text-gray-400"><Minus className="w-4 h-4" /></button>
-                            <span className="text-4xl font-black italic tracking-tighter w-12">{score1}</span>
-                            <button onClick={() => setScore1(score1 + 1)} className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center hover:bg-emerald-500/30 active:scale-90 transition-all text-emerald-400"><Plus className="w-4 h-4" /></button>
-                        </div>
-                    </div>
-                    <div className="text-2xl font-black text-gray-800 italic pt-6">:</div>
-                    <div className="text-center space-y-2">
-                        <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest">TEAM 2</p>
-                        <div className="flex items-center gap-3 bg-white/5 p-2 rounded-[24px] border border-white/10">
-                            <button onClick={() => setScore2(Math.max(0, score2 - 1))} className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 active:scale-90 transition-all text-gray-400"><Minus className="w-4 h-4" /></button>
-                            <span className="text-4xl font-black italic tracking-tighter w-12">{score2}</span>
-                            <button onClick={() => setScore2(score2 + 1)} className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center hover:bg-emerald-500/30 active:scale-90 transition-all text-emerald-400"><Plus className="w-4 h-4" /></button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
 
             <div className="space-y-4">
                 <h3 className="text-[10px] font-black text-gray-700 uppercase tracking-widest text-center italic">選擇本場勝方 (PICK WINNER)</h3>
