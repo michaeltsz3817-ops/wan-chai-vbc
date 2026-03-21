@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Trophy, GlassWater, TrendingUp, Medal, User, Activity } from 'lucide-react';
+import { Trophy, GlassWater, TrendingUp, Medal, User, Activity, Zap } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { format, parseISO } from 'date-fns';
 
