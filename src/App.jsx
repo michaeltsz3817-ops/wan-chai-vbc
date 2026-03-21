@@ -9,13 +9,19 @@ import StatsHub from './components/StatsHub';
 import DailyReport from './components/DailyReport';
 
 import { Dock } from './components/ui/dock-two';
-import ImageHover from './components/ui/link-hover';
+// import ImageHover from './components/ui/link-hover'; // Unused
 
 const DEFAULT_SKILLS = { atk: 1, def: 1, srv: 1, set: 1, blk: 1, pwr: 1 };
 
 function App() {
+    useEffect(() => {
+        console.log('App Mounted');
+    }, []);
+
     const [activeTab, setActiveTab] = useState('dashboard');
     const [isAdmin, setIsAdmin] = useState(false);
+    
+    // ... rest of the states ...
     const [players, setPlayers] = useState(() => {
         try {
             const saved = localStorage.getItem('vbc-players') || localStorage.getItem('vbc_players');
@@ -109,12 +115,20 @@ function App() {
                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             
             sortedMatches.forEach(m => {
-                if (!m.teams || m.winnerTeam === undefined) return;
-                const winnerTeam = m.teams[m.winnerTeam];
-                if (!winnerTeam) return;
+                if (!m || !Array.isArray(m.teams) || m.winnerTeam === undefined) {
+                    console.warn('playersWithStats: encountered invalid match object during iteration.', m);
+                    return;
+                }
+                const winnerTeamIndex = m.absoluteWinnerIdx !== undefined ? m.absoluteWinnerIdx : m.winnerTeam;
+                const winnerTeam = m.teams[winnerTeamIndex];
+                
+                if (!winnerTeam || !Array.isArray(winnerTeam)) {
+                    console.warn('playersWithStats: winnerTeam is invalid for match.', m);
+                    return;
+                }
 
-                const wasInWinner = winnerTeam.some(wp => wp.id === p.id);
-                const wasInLoser = m.teams.flat().some(lp => lp.id === p.id) && !wasInWinner;
+                const wasInWinner = winnerTeam.some(wp => wp && wp.id === p.id);
+                const wasInLoser = m.teams.flat().some(lp => lp && lp.id === p.id) && !wasInWinner;
                 
                 if (wasInWinner) {
                     wins += 1;
@@ -190,7 +204,7 @@ function App() {
                         <div className="w-10 h-10 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20 rotate-3 transition-transform hover:rotate-0">
                             <Trophy className="w-6 h-6 text-white" />
                         </div>
-                        <div>
+                        <div onClick={() => console.log('State Debug:', { activeTab, playersCount: players?.length, matchesCount: matches?.length })}>
                             <h1 className="text-2xl font-black italic tracking-tighter leading-none">WAN CHAI <span className="text-emerald-400">VBC</span></h1>
                             <p className="text-[8px] font-bold text-gray-500 tracking-[0.3em] uppercase ml-0.5">Volleyball Management System</p>
                         </div>
