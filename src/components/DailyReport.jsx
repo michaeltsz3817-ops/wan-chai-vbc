@@ -33,25 +33,34 @@ export default function DailyReport({ players, matches }) {
     };
 
     const filteredMatches = matches.filter(m => {
-        const matchDate = parseISO(m.date);
-        if (viewMode === 'daily') {
-            return isSameDay(matchDate, selectedDate);
-        } else {
-            return isSameMonth(matchDate, currentMonth);
+        if (!m || !m.date) return false;
+        try {
+            const matchDate = parseISO(m.date);
+            if (viewMode === 'daily') {
+                return isSameDay(matchDate, selectedDate);
+            } else {
+                return isSameMonth(matchDate, currentMonth);
+            }
+        } catch (e) {
+            return false;
         }
     });
 
     // Total Stake = total amount losers lose (money changing hands)
-    const totalStake = filteredMatches.reduce((acc, m) => acc + m.stake * (m.teams.flat().length - m.teams[m.winnerTeam].length), 0);
+    const totalStake = filteredMatches.reduce((acc, m) => {
+        if (!m.teams || m.winnerTeam === undefined || !m.teams[m.winnerTeam]) return acc;
+        return acc + m.stake * (m.teams.flat().length - m.teams[m.winnerTeam].length);
+    }, 0);
 
     const playersWithDailyStats = players.map(p => {
         let totalEarnings = 0;
         let dailyWins = 0;
         let dailyLosses = 0;
         filteredMatches.forEach(m => {
-            if (!m.teams || m.winnerTeam === undefined) return;
+            if (!m.teams || m.winnerTeam === undefined || !m.teams[m.winnerTeam]) return;
+            const teamsFlat = m.teams.flat();
             const wasInWinner = m.teams[m.winnerTeam]?.some(wp => wp.id === p.id) || false;
-            const wasInLoser = (m.teams.flat().some(lp => lp.id === p.id) && !wasInWinner) || false;
+            const wasInLoser = (teamsFlat.some(lp => lp.id === p.id) && !wasInWinner) || false;
 
             if (wasInWinner) {
                 totalEarnings += m.payout;
@@ -75,7 +84,12 @@ export default function DailyReport({ players, matches }) {
             return `${signal} *${p.name}*: ${p.totalEarnings >= 0 ? '+' : ''}$${p.totalEarnings.toFixed(0)} (${p.dailyWins}勝 ${p.dailyLosses}負)`;
         }).join('\n');
 
-        const report = `${title}\n${total}\n------------------\n${playerStats}\n------------------\n請收錢人核對，多謝合作！`;
+        const matchDetails = filteredMatches.map(m => {
+            const scoreStr = m.scores ? ` (${m.scores[0]}-${m.scores[1]})` : '';
+            return `• $${m.stake}${scoreStr} - Team ${(m.winnerTeam ?? 0) + 1} 勝`;
+        }).join('\n');
+
+        const report = `${title}\n${total}\n------------------\n*個人盈虧:*\n${playerStats}\n------------------\n*比賽詳情:*\n${matchDetails}\n------------------\n請收錢人核對，多謝合作！`;
 
         navigator.clipboard.writeText(report).then(() => {
             setIsCopied(true);

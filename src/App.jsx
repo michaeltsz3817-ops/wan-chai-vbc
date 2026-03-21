@@ -17,19 +17,31 @@ function App() {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [isAdmin, setIsAdmin] = useState(false);
     const [players, setPlayers] = useState(() => {
-        const saved = localStorage.getItem('vbc-players');
-        return saved ? JSON.parse(saved) : [
-            { id: '1', name: '阿強', icon: '🔥', skill: 5, skills: { ...DEFAULT_SKILLS, atk: 5, pwr: 4 } },
-            { id: '2', name: '小明', icon: '🦁', skill: 2, skills: { ...DEFAULT_SKILLS, def: 3 } },
-            { id: '3', name: '大師兄', icon: '⚡️', skill: 4, skills: { ...DEFAULT_SKILLS, atk: 4, srv: 4 } },
-            { id: '4', name: '波子', icon: '🧤', skill: 3, skills: { ...DEFAULT_SKILLS, set: 4 } },
-            { id: '5', name: '阿飛', icon: '🦅', skill: 4, skills: { ...DEFAULT_SKILLS, blk: 4 } },
-        ];
+        try {
+            const saved = localStorage.getItem('vbc-players');
+            const parsed = saved ? JSON.parse(saved) : null;
+            return parsed || [
+                { id: '1', name: '阿強', icon: '🔥', skill: 5, skills: { ...DEFAULT_SKILLS, atk: 5, pwr: 4 } },
+                { id: '2', name: '小明', icon: '🦁', skill: 2, skills: { ...DEFAULT_SKILLS, def: 3 } },
+                { id: '3', name: '大師兄', icon: '⚡️', skill: 4, skills: { ...DEFAULT_SKILLS, atk: 4, srv: 4 } },
+                { id: '4', name: '波子', icon: '🧤', skill: 3, skills: { ...DEFAULT_SKILLS, set: 4 } },
+                { id: '5', name: '阿飛', icon: '🦅', skill: 4, skills: { ...DEFAULT_SKILLS, blk: 4 } },
+            ];
+        } catch (e) {
+            console.error('Failed to parse players:', e);
+            return [];
+        }
     });
 
     const [matches, setMatches] = useState(() => {
-        const saved = localStorage.getItem('vbc-matches');
-        return saved ? JSON.parse(saved) : [];
+        try {
+            const saved = localStorage.getItem('vbc-matches');
+            const parsed = saved ? JSON.parse(saved) : null;
+            return parsed || [];
+        } catch (e) {
+            console.error('Failed to parse matches:', e);
+            return [];
+        }
     });
 
     const [teams, setTeams] = useState([]);
@@ -48,15 +60,23 @@ function App() {
 
     // Data Migration: Ensure all players have skills object
     useEffect(() => {
-        const needsSkills = players.some(p => !p.skills);
-        const hasMatchesWithoutId = matches.some(m => !m.id);
+        if (!Array.isArray(players) || !Array.isArray(matches)) return;
+        
+        const needsSkills = players.some(p => p && !p.skills);
+        const hasMatchesWithoutId = matches.some(m => m && (!m.id || !m.date));
         
         if (needsSkills || hasMatchesWithoutId) {
             if (needsSkills) {
-                setPlayers(prev => prev.map(p => p.skills ? p : { ...p, skills: { ...DEFAULT_SKILLS } }));
+                setPlayers(prev => (prev || []).map(p => !p ? p : (p.skills ? p : { ...p, skills: { ...DEFAULT_SKILLS } })));
             }
             if (hasMatchesWithoutId) {
-                setMatches(prev => prev.map(m => m.id ? m : { ...m, id: Date.now() + Math.random().toString(36).substr(2, 9) }));
+                setMatches(prev => (prev || []).map(m => {
+                    if (!m) return m;
+                    let updated = { ...m };
+                    if (!m.id) updated.id = Date.now() + Math.random().toString(36).substr(2, 9);
+                    if (!m.date) updated.date = new Date().toISOString();
+                    return updated;
+                }));
             }
         }
     }, [players, matches]);
@@ -69,6 +89,12 @@ function App() {
         setPlayers(players.map(p => p.id === id ? { ...p, ...updates } : p));
     };
 
+    const deleteMatch = (id) => {
+        if (window.confirm('確定要刪除這場比賽紀錄嗎？')) {
+            setMatches(matches.filter(m => m.id !== id));
+        }
+    };
+
     const playersWithStats = useMemo(() => {
         return players.map(p => {
             let wins = 0;
@@ -78,11 +104,16 @@ function App() {
             let currentStreak = 0;
             let lastResults = [];
             
-            const sortedMatches = [...matches].sort((a, b) => new Date(a.date) - new Date(b.date));
+            const sortedMatches = [...(matches || [])]
+                .filter(m => m && m.date)
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             
             sortedMatches.forEach(m => {
                 if (!m.teams || m.winnerTeam === undefined) return;
-                const wasInWinner = m.teams[m.winnerTeam]?.some(wp => wp.id === p.id);
+                const winnerTeam = m.teams[m.winnerTeam];
+                if (!winnerTeam) return;
+
+                const wasInWinner = winnerTeam.some(wp => wp.id === p.id);
                 const wasInLoser = m.teams.flat().some(lp => lp.id === p.id) && !wasInWinner;
                 
                 if (wasInWinner) {
@@ -188,6 +219,11 @@ function App() {
                                             <div className="flex items-center gap-3">
                                                 <div className="px-3 py-1 bg-emerald-500/20 rounded-full border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
                                                     <span className="text-[10px] font-black text-emerald-400 uppercase italic tracking-wider">{m.isRotationMatch && m.absoluteWinnerIdx !== undefined ? `Team ${m.absoluteWinnerIdx + 1}` : `Team ${(m.winnerTeam ?? 0) + 1}`} WINNER</span>
+                                                    {m.scores && (
+                                                        <span className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">
+                                                            ({m.scores[0]}-{m.scores[1]})
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <span className="text-xl font-black italic tracking-tighter uppercase text-white">${m.stake} <span className="text-[10px] text-gray-500 not-italic">{m.isRotationMatch ? (m.roundName || 'Rotation') : 'Friendly'}</span></span>
                                             </div>

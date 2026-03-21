@@ -36,7 +36,13 @@ export default function StatsHub({ players, matches }) {
         const playerCumulative = {}; // playerId -> currentTotal
 
         sortedMatches.forEach((m) => {
-            const dateStr = format(parseISO(m.date), 'MM/dd HH:mm');
+            if (!m.date) return;
+            let dateStr;
+            try {
+                dateStr = format(parseISO(m.date), 'MM/dd HH:mm');
+            } catch (e) {
+                dateStr = 'Unknown';
+            }
             const entry = { name: dateStr };
 
             players.forEach(p => {
