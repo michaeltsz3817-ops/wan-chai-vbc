@@ -119,30 +119,21 @@ function App() {
     };
 
     const playersWithStats = useMemo(() => {
-        return players.map(p => {
+        const processed = (players || []).map(p => {
+            if (!p) return null;
             let wins = 0;
             let losses = 0;
             let drinks = 0;
-            let winStreak = 0;
             let currentStreak = 0;
-            let lastResults = [];
             
             const sortedMatches = [...(matches || [])]
                 .filter(m => m && m.date)
                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             
             sortedMatches.forEach(m => {
-                if (!m || !Array.isArray(m.teams) || m.winnerTeam === undefined) {
-                    console.warn('playersWithStats: encountered invalid match object during iteration.', m);
-                    return;
-                }
                 const winnerTeamIndex = m.absoluteWinnerIdx !== undefined ? m.absoluteWinnerIdx : m.winnerTeam;
                 const winnerTeam = m.teams[winnerTeamIndex];
-                
-                if (!winnerTeam || !Array.isArray(winnerTeam)) {
-                    console.warn('playersWithStats: winnerTeam is invalid for match.', m);
-                    return;
-                }
+                if (!winnerTeam) return;
 
                 const wasInWinner = winnerTeam.some(wp => wp && wp.id === p.id);
                 const wasInLoser = m.teams.flat().some(lp => lp && lp.id === p.id) && !wasInWinner;
@@ -150,13 +141,10 @@ function App() {
                 if (wasInWinner) {
                     wins += 1;
                     drinks += 1;
-                    lastResults.push(1);
                     currentStreak += 1;
-                    winStreak = Math.max(winStreak, currentStreak);
                 } else if (wasInLoser) {
                     losses += 1;
                     drinks -= 1;
-                    lastResults.push(-1);
                     currentStreak = 0;
                 }
             });
@@ -187,13 +175,11 @@ function App() {
                 losses, 
                 drinks, 
                 totalMatches,
-                earnedPoints,
                 availablePoints,
-                winStreak,
                 effectiveSkill,
                 isHot: currentStreak >= 3
             };
-        });
+        }).filter(Boolean);
 
         const maxWins = Math.max(0, ...processed.map(p => p.wins));
         return processed.map(p => ({

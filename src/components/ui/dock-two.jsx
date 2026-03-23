@@ -34,8 +34,8 @@ const DockIconButton = React.forwardRef(({ icon: Icon, label, onClick, className
         "absolute -top-10 left-1/2 -translate-x-1/2",
         "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest",
         "bg-[#050505]/90 text-white backdrop-blur-xl border border-white/10 shadow-2xl",
-        "opacity-0 group-hover:opacity-100",
-        "transition-all duration-300 whitespace-nowrap pointer-events-none translate-y-2 group-hover:translate-y-0"
+        "opacity-0 md:group-hover:opacity-100",
+        "transition-all duration-300 whitespace-nowrap pointer-events-none md:translate-y-2 md:group-hover:translate-y-0"
       )}>
         {label}
       </span>

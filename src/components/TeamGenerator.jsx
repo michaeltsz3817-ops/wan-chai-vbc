@@ -206,7 +206,6 @@ export default function TeamGenerator({ players, teams, setTeams, onReset, onGen
                 <div className="grid grid-cols-1 gap-4">
                     <div className="flex items-center justify-between px-2 pt-4">
                         <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">分隊結果</h3>
-                        <p className="text-[8px] font-bold text-gray-600 uppercase tracking-widest italic whitespace-nowrap overflow-hidden text-ellipsis">提示：點擊或拖拉左邊圖示 ⠿ 可手動換隊微調</p>
                     </div>
                     <AnimatePresence>
                         {teams.map((team, idx) => (
