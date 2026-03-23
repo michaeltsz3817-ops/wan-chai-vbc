@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { UserPlus, Trash2, UserCircle, Camera, Check, X, Edit2, Zap, Shield, Target, Hand, Layers, Dumbbell, Star, ChevronDown, ChevronUp, Plus, Minus } from 'lucide-react';
+import { UserPlus, Trash2, UserCircle, Camera, Check, X, Edit2, Zap, Shield, Target, Hand, Layers, Dumbbell, Star, ChevronDown, ChevronUp, Plus, Minus, Search, Download, Upload, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
 
@@ -12,6 +12,15 @@ const SKILL_LABELS = {
     set: { label: '舉球', icon: Hand, color: 'text-emerald-400' },
     blk: { label: '攔網', icon: Layers, color: 'text-purple-400' },
     pwr: { label: '體力', icon: Dumbbell, color: 'text-yellow-400' }
+};
+
+const ROLES = {
+    none: { label: '自由人', icon: UserCircle, bonus: null },
+    cannon: { label: '大炮 (Cannon)', icon: Zap, bonus: 'atk', desc: '進攻 +1' },
+    wall: { label: '長城 (Wall)', icon: Layers, bonus: 'blk', desc: '攔網 +1' },
+    maestro: { label: '指揮官 (Maestro)', icon: Hand, bonus: 'set', desc: '舉球 +1' },
+    guardian: { label: '守護者 (Guardian)', icon: Shield, bonus: 'def', desc: '防守 +1' },
+    server: { label: '發球機器 (Server)', icon: Target, bonus: 'srv', desc: '發球 +1' }
 };
 
 function SkillCard({ player, onUpdate }) {
@@ -27,7 +36,6 @@ function SkillCard({ player, onUpdate }) {
         const currentScore = player.skills[skillKey];
         const newScore = currentScore + delta;
 
-        // Validation
         if (newScore < 1 || newScore > 5) return;
         if (delta > 0 && player.availablePoints <= 0) return;
 
@@ -59,7 +67,6 @@ function SkillCard({ player, onUpdate }) {
                         className="overflow-hidden"
                     >
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-6">
-                            {/* Radar Chart */}
                             <div className="h-[200px] bg-white/2 rounded-3xl p-2 relative">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
@@ -77,13 +84,8 @@ function SkillCard({ player, onUpdate }) {
                                         />
                                     </RadarChart>
                                 </ResponsiveContainer>
-                                <div className="absolute top-2 right-4 flex items-center gap-1.5">
-                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                    <span className="text-[8px] font-bold text-gray-500 uppercase tracking-tighter">Live Stats</span>
-                                </div>
                             </div>
 
-                            {/* Point Allocation */}
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between px-2">
                                     <span className="text-[10px] font-black uppercase text-gray-500">可用點數 (Matches / 10)</span>
@@ -92,7 +94,7 @@ function SkillCard({ player, onUpdate }) {
                                     </span>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-2">
+                                 <div className="grid grid-cols-2 gap-2">
                                     {Object.entries(SKILL_LABELS).map(([key, { label, icon: Icon, color }]) => (
                                         <div key={key} className="bg-white/5 rounded-2xl p-3 flex flex-col gap-2 border border-white/5 hover:border-white/10 transition-all">
                                             <div className="flex items-center justify-between">
@@ -100,7 +102,12 @@ function SkillCard({ player, onUpdate }) {
                                                     <Icon className={`w-3 h-3 ${color}`} />
                                                     <span className="text-[10px] font-bold text-gray-400 uppercase">{label}</span>
                                                 </div>
-                                                <span className="text-sm font-black italic">{player.skills?.[key] || 1}</span>
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-sm font-black italic">{player.skills?.[key] || 1}</span>
+                                                    {ROLES[player.role || 'none']?.bonus === key && (
+                                                        <span className="text-[8px] text-emerald-400 font-bold">+1</span>
+                                                    )}
+                                                </div>
                                             </div>
                                             <div className="flex gap-1">
                                                 <button 
@@ -123,6 +130,19 @@ function SkillCard({ player, onUpdate }) {
                                 </div>
                             </div>
                         </div>
+                        <div className="mt-4 px-2 space-y-2">
+                            <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest text-gray-600">
+                                <span>Level Progress</span>
+                                <span>{player.totalMatches % 10} / 10 Matches</span>
+                            </div>
+                            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                                <motion.div 
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${(player.totalMatches % 10) * 10}%` }}
+                                    className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                                />
+                            </div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -130,11 +150,13 @@ function SkillCard({ player, onUpdate }) {
     );
 }
 
-export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onResetAll, isAdmin }) {
+export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onResetAll, onExport, onImport, isAdmin }) {
     const [newName, setNewName] = useState('');
     const [selectedIcon, setSelectedIcon] = useState(EMOJIS[0]);
     const [editingId, setEditingId] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showAddForm, setShowAddForm] = useState(false);
     const fileInputRef = useRef(null);
 
     const handleSubmit = (e) => {
@@ -225,62 +247,85 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
         }
     };
 
+    const filteredPlayers = players.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
     return (
         <div className="space-y-8 pb-24 text-white">
             <header className="space-y-1">
-                <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white">
-                    {editingId ? '修改' : '成員'} <span className="text-emerald-400">{editingId ? 'PROFILE' : 'JOIN'}</span>
-                </h2>
-                <p className="text-gray-500 text-sm font-bold">
-                    {editingId ? '正在修改成員資料，完成後點擊勾號保存。' : '同事請在此輸入名字並上傳相片或揀選 Icon 加入。每打 10 場會獲贈 1 點技能點！'}
-                </p>
+                <div className="flex items-center justify-between">
+                    <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white">
+                        {editingId ? '修改' : '成員'} <span className="text-emerald-400">{editingId ? 'PROFILE' : 'JOIN'}</span>
+                    </h2>
+                    <button 
+                        onClick={() => setShowAddForm(!showAddForm)}
+                        className={`p-3 rounded-2xl transition-all ${showAddForm ? 'bg-red-500/10 text-red-500 rotate-45' : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'}`}
+                    >
+                        <Plus className="w-6 h-6" />
+                    </button>
+                </div>
             </header>
 
-            <section className={`p-6 glass rounded-[40px] border transition-all duration-500 relative overflow-hidden ${editingId ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-emerald-500/20 bg-emerald-500/5'}`}>
-                <div className="absolute top-0 right-0 p-4 opacity-10"><UserCircle className="w-12 h-12" /></div>
-                <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
-                    <div className="space-y-3">
-                        <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${editingId ? 'text-yellow-500' : 'text-emerald-400'}`}>1. 選擇 ICON</label>
-                        <div className="flex flex-wrap gap-2.5">
-                            <button key="upload" type="button" onClick={() => fileInputRef.current?.click()} className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl transition-all active:scale-90 border-2 border-dashed ${selectedIcon && selectedIcon.startsWith('data:image') ? 'border-emerald-500 bg-emerald-500/20' : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10'}`}>
-                                {selectedIcon && selectedIcon.startsWith('data:image') ? <img src={selectedIcon} alt="Preview" className="w-full h-full object-cover rounded-xl" /> : <Camera className="w-5 h-5" />}
-                            </button>
-                            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
-                            {EMOJIS.map(emoji => (
-                                <button key={emoji} type="button" onClick={() => setSelectedIcon(emoji)} className={`w-11 h-11 rounded-2xl flex items-center justify-center text-2xl transition-all active:scale-90 ${selectedIcon === emoji ? (editingId ? 'bg-yellow-500 shadow-yellow-500/30' : 'bg-emerald-500 shadow-emerald-500/30') + ' text-white shadow-xl ring-2 ring-offset-4 ring-offset-background' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
-                                    {emoji}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="space-y-3">
-                        <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${editingId ? 'text-yellow-500' : 'text-emerald-400'}`}>2. 名稱</label>
-                        <div className="flex flex-col sm:flex-row gap-3">
-                            <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="在此輸入..." className="flex-1 w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 outline-none focus:border-emerald-500 focus:bg-white/10 transition-all font-black text-lg placeholder:text-gray-700" />
-                            {editingId ? (
-                                <div className="flex gap-2 w-full sm:w-auto">
-                                    <button type="button" onClick={cancelEdit} className="flex-1 sm:px-6 bg-white/5 rounded-2xl py-4 flex items-center justify-center border border-white/10 active:scale-95 transition-all"><X className="w-6 h-6 text-gray-400" /></button>
-                                    <button type="submit" className="flex-[2] sm:px-10 bg-yellow-500 rounded-2xl py-4 flex items-center justify-center shadow-xl shadow-yellow-500/20 active:scale-95 transition-all text-black"><Check className="w-6 h-6" /></button>
+            <AnimatePresence>
+                {(showAddForm || editingId) && (
+                    <motion.section 
+                        initial={{ opacity: 0, y: -20, height: 0 }}
+                        animate={{ opacity: 1, y: 0, height: 'auto' }}
+                        exit={{ opacity: 0, y: -20, height: 0 }}
+                        className="overflow-hidden"
+                    >
+                        <div className={`p-6 glass rounded-[40px] border transition-all duration-500 relative ${editingId ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-emerald-500/20 bg-emerald-500/5'}`}>
+                            <form onSubmit={handleSubmit} className="space-y-6">
+                                <div className="space-y-3">
+                                    <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${editingId ? 'text-yellow-500' : 'text-emerald-400'}`}>1. 選擇 ICON</label>
+                                    <div className="flex flex-wrap gap-2.5">
+                                        <button key="upload" type="button" onClick={() => fileInputRef.current?.click()} className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl transition-all active:scale-90 border-2 border-dashed ${selectedIcon && selectedIcon.startsWith('data:image') ? 'border-emerald-500 bg-emerald-500/20' : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+                                            {selectedIcon && selectedIcon.startsWith('data:image') ? <img src={selectedIcon} alt="Preview" className="w-full h-full object-cover rounded-xl" /> : <Camera className="w-5 h-5" />}
+                                        </button>
+                                        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+                                        {EMOJIS.map(emoji => (
+                                            <button key={emoji} type="button" onClick={() => setSelectedIcon(emoji)} className={`w-11 h-11 rounded-2xl flex items-center justify-center text-2xl transition-all active:scale-90 ${selectedIcon === emoji ? (editingId ? 'bg-yellow-500' : 'bg-emerald-500') + ' text-white shadow-xl ring-2 ring-emerald-500/20' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+                                                {emoji}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            ) : (
-                                <button type="submit" disabled={!newName.trim() || isUploading} className="w-full sm:w-auto sm:px-8 bg-emerald-500 rounded-2xl py-4 flex items-center justify-center shadow-xl shadow-emerald-500/20 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale">
-                                    <UserPlus className="w-6 h-6 text-white" />
-                                </button>
-                            )}
+                                <div className="space-y-3">
+                                    <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${editingId ? 'text-yellow-500' : 'text-emerald-400'}`}>2. 名稱</label>
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="在此輸入..." className="flex-1 w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 outline-none focus:border-emerald-500 transition-all font-black text-lg" />
+                                        <div className="flex gap-2">
+                                            {editingId && <button type="button" onClick={cancelEdit} className="px-6 bg-white/5 rounded-2xl py-4 border border-white/10 active:scale-95 transition-all"><X className="w-6 h-6" /></button>}
+                                            <button type="submit" className={`flex-1 sm:px-10 rounded-2xl py-4 shadow-xl active:scale-95 transition-all ${editingId ? 'bg-yellow-500 text-black' : 'bg-emerald-500 text-white'}`}>
+                                                {editingId ? <Check className="w-6 h-6 mx-auto" /> : <Plus className="w-6 h-6 mx-auto" />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-                    </div>
-                </form>
-            </section>
+                    </motion.section>
+                )}
+            </AnimatePresence>
 
             <section className="space-y-4">
+                <div className="relative group">
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600 group-focus-within:text-emerald-400 transition-colors" />
+                    <input 
+                        type="text" 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="搜尋隊員..."
+                        className="w-full bg-white/5 border border-white/10 rounded-[30px] pl-14 pr-6 py-5 outline-none focus:border-emerald-500/30 transition-all font-bold text-sm"
+                    />
+                </div>
+
                 <div className="flex items-center justify-between ml-1">
-                    <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">現有成員 ({players.length})</h3>
-                    {isAdmin && <button onClick={onResetAll} className="text-[10px] font-black text-red-500 uppercase tracking-widest bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">重設所有數據</button>}
+                    <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">現有成員 ({filteredPlayers.length})</h3>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
                     <AnimatePresence mode="popLayout">
-                        {players.map((p) => (
+                        {[...filteredPlayers].sort((a, b) => a.name.localeCompare(b.name, 'zh-HK')).map((p) => (
                             <motion.div layout key={p.id} className={`p-5 glass rounded-[32px] flex flex-col border transition-all group ${editingId === p.id ? 'border-yellow-500/50 bg-yellow-500/10' : 'border-white/5 hover:border-white/10'}`}>
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
@@ -291,8 +336,24 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xl font-black italic tracking-tighter uppercase">{p.name}</span>
                                                 {p.availablePoints > 0 && <span className="text-[8px] bg-yellow-500 text-black px-1.5 py-0.5 rounded-full font-black animate-bounce">POINTS!</span>}
+                                                {ROLES[p.role]?.icon && (
+                                                    <div className="bg-white/10 p-1 rounded-lg border border-white/10" title={ROLES[p.role].label}>
+                                                        {React.createElement(ROLES[p.role].icon, { className: "w-3 h-3 text-emerald-400" })}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="flex gap-4 mt-1">
+                                                <div className="flex items-center gap-2">
+                                                    <select 
+                                                        value={p.role || 'none'} 
+                                                        onChange={(e) => onUpdate(p.id, { role: e.target.value })}
+                                                        className="bg-transparent text-[8px] font-black uppercase tracking-widest text-emerald-400 border border-emerald-500/30 rounded-full px-2 py-0.5 outline-none hover:bg-emerald-500/10 cursor-pointer"
+                                                    >
+                                                        {Object.entries(ROLES).map(([key, { label }]) => (
+                                                            <option key={key} value={key} className="bg-[#111]">{label}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
                                                 <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">{p.wins || 0} 勝仗</span>
                                                 <span className={`text-[10px] font-bold uppercase tracking-widest ${p.totalMatches >= 10 ? 'text-yellow-500' : 'text-gray-500'}`}>{p.totalMatches || 0} 場經驗</span>
                                             </div>
@@ -309,6 +370,36 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
                     </AnimatePresence>
                 </div>
             </section>
+
+            {/* Admin Controls */}
+            {isAdmin && (
+                <section className="pt-10 pb-20 space-y-4 border-t border-white/5">
+                    <div className="flex items-center gap-2 mb-4 px-2">
+                        <ShieldCheck className="w-4 h-4 text-gray-600" />
+                        <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest">數據管理 (Admin Only)</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                        <button 
+                            onClick={onExport}
+                            className="flex items-center justify-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/20 transition-all"
+                        >
+                            <Download className="w-4 h-4" /> 下載數據
+                        </button>
+                        <label className="flex items-center justify-center gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest text-blue-400 hover:bg-blue-500/20 transition-all cursor-pointer">
+                            <Upload className="w-4 h-4" /> 匯入數據
+                            <input type="file" accept=".json" onChange={onImport} className="hidden" />
+                        </label>
+                    </div>
+
+                    <button 
+                        onClick={onResetAll}
+                        className="w-full p-4 bg-red-500/5 border border-red-500/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-500/50 hover:bg-red-500/10 hover:text-red-500 transition-all"
+                    >
+                        重設所有數據 (Danger Room)
+                    </button>
+                </section>
+            )}
         </div>
     );
 }

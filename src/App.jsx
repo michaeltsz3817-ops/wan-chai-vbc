@@ -7,9 +7,7 @@ import TeamGenerator from './components/TeamGenerator';
 import MatchSession from './components/MatchSession';
 import StatsHub from './components/StatsHub';
 import DailyReport from './components/DailyReport';
-
 import { Dock } from './components/ui/dock-two';
-// import ImageHover from './components/ui/link-hover'; // Unused
 
 const DEFAULT_SKILLS = { atk: 1, def: 1, srv: 1, set: 1, blk: 1, pwr: 1 };
 
@@ -53,16 +51,25 @@ function App() {
     const [teams, setTeams] = useState([]);
     const [gameStep, setGameStep] = useState(0);
     const [g1WinnerIdx, setG1WinnerIdx] = useState(null);
+    const [presentPlayerIds, setPresentPlayerIds] = useState(() => {
+        try {
+            const saved = localStorage.getItem('vbc-present');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            return [];
+        }
+    });
 
     // Persistence
     useEffect(() => {
         try {
             localStorage.setItem('vbc-players', JSON.stringify(players));
             localStorage.setItem('vbc-matches', JSON.stringify(matches));
+            localStorage.setItem('vbc-present', JSON.stringify(presentPlayerIds));
         } catch (error) {
             console.error('Persistence failed:', error);
         }
-    }, [players, matches]);
+    }, [players, matches, presentPlayerIds]);
 
     // Data Migration: Ensure all players have skills object
     useEffect(() => {
@@ -149,6 +156,21 @@ function App() {
             const spentPoints = Object.values(p.skills || DEFAULT_SKILLS).reduce((a, b) => a + b, 0) - Object.keys(DEFAULT_SKILLS).length;
             const availablePoints = Math.max(0, earnedPoints - spentPoints);
 
+            // Role Bonus Logic
+            const roleBonus = { atk: 0, def: 0, srv: 0, set: 0, blk: 0, pwr: 0 };
+            if (p.role === 'cannon') roleBonus.atk = 1;
+            else if (p.role === 'wall') roleBonus.blk = 1;
+            else if (p.role === 'maestro') roleBonus.set = 1;
+            else if (p.role === 'guardian') roleBonus.def = 1;
+            else if (p.role === 'server') roleBonus.srv = 1;
+
+            const finalSkills = {};
+            Object.keys(DEFAULT_SKILLS).forEach(k => {
+                finalSkills[k] = (p.skills?.[k] || 1) + (roleBonus[k] || 0);
+            });
+
+            const effectiveSkill = Object.values(finalSkills).reduce((a, b) => a + b, 0) / Object.keys(DEFAULT_SKILLS).length;
+
             return { 
                 ...p, 
                 wins, 
@@ -158,9 +180,16 @@ function App() {
                 earnedPoints,
                 availablePoints,
                 winStreak,
+                effectiveSkill,
                 isHot: currentStreak >= 3
             };
         });
+
+        const maxWins = Math.max(0, ...processed.map(p => p.wins));
+        return processed.map(p => ({
+            ...p,
+            isGoat: maxWins > 0 && p.wins === maxWins
+        }));
     }, [players, matches]);
 
     const handleMatchComplete = (matchData) => {
@@ -182,6 +211,54 @@ function App() {
             setG1WinnerIdx(null);
             setActiveTab('teaming');
         }
+    };
+
+    const togglePresence = (id) => {
+        setPresentPlayerIds(prev => 
+            prev.includes(id) ? prev.filter(pid => pid !== id) : [...prev, id]
+        );
+    };
+
+    const resetAttendance = () => setPresentPlayerIds([]);
+
+    const exportData = () => {
+        const data = {
+            players,
+            matches,
+            presentPlayerIds,
+            version: '1.0',
+            timestamp: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `vbc_backup_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+    };
+
+    const importData = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = JSON.parse(event.target.result);
+                if (data.players && Array.isArray(data.players)) {
+                    if (window.confirm('確定要匯入數據嗎？這將會覆蓋目前的進度。')) {
+                        setPlayers(data.players);
+                        if (data.matches) setMatches(data.matches);
+                        if (data.presentPlayerIds) setPresentPlayerIds(data.presentPlayerIds);
+                        alert('數據匯入成功！');
+                    }
+                } else {
+                    alert('無效的數據格式');
+                }
+            } catch (err) {
+                alert('匯入失敗：' + err.message);
+            }
+        };
+        reader.readAsText(file);
     };
 
     const resetAllStats = () => {
@@ -219,10 +296,58 @@ function App() {
             <main className="max-w-lg p-5 mx-auto relative z-10">
                 <AnimatePresence mode="wait">
                     {activeTab === 'dashboard' && <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><StatsHub players={playersWithStats || []} matches={matches || []} /></motion.div>}
-                    {activeTab === 'teaming' && <motion.div key="teaming" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><TeamGenerator players={playersWithStats || []} teams={teams || []} setTeams={setTeams} onReset={resetTeams} onGenerateComplete={() => setActiveTab('play')} /></motion.div>}
+                    {activeTab === 'teaming' && (
+                        <motion.div key="teaming" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                            {presentPlayerIds.length === 0 ? (
+                                <section className="space-y-6">
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="text-2xl font-black italic tracking-tighter uppercase text-white">今日 <span className="text-emerald-400">CHECK-IN</span></h2>
+                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">請先選擇今日到場成員</p>
+                                    </div>
+                                    <div className="grid grid-cols-4 gap-3">
+                                        {[...playersWithStats].sort((a, b) => a.name.localeCompare(b.name, 'zh-HK')).map(p => (
+                                            <button
+                                                key={p.id}
+                                                onClick={() => togglePresence(p.id)}
+                                                className={`flex flex-col items-center gap-2 p-3 rounded-2xl transition-all active:scale-95 border ${presentPlayerIds.includes(p.id)
+                                                    ? 'bg-emerald-500/10 border-emerald-500/50 shadow-lg shadow-emerald-500/5'
+                                                    : 'bg-white/5 border-transparent grayscale brightness-50 opacity-40'
+                                                    }`}
+                                            >
+                                                <span className="text-2xl">{p.icon || '🏐'}</span>
+                                                <span className="text-[10px] font-black truncate w-full text-center uppercase tracking-tighter">{p.name}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button 
+                                        disabled={presentPlayerIds.length < 2}
+                                        onClick={() => console.log('Attendance Confirmed')} 
+                                        className="w-full py-5 bg-emerald-500 rounded-[32px] font-black italic text-xl tracking-tighter uppercase shadow-2xl shadow-emerald-500/30 active:scale-95 transition-all disabled:opacity-30"
+                                    >
+                                        確認名單 ({presentPlayerIds.length})
+                                    </button>
+                                </section>
+                            ) : (
+                                <TeamGenerator players={playersWithStats || []} teams={teams || []} setTeams={setTeams} onReset={resetTeams} onGenerateComplete={() => setActiveTab('play')} presentPlayerIds={presentPlayerIds} onResetAttendance={resetAttendance} />
+                            )}
+                        </motion.div>
+                    )}
                     {activeTab === 'play' && <motion.div key="play" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}><MatchSession activeTeams={teams || []} onComplete={handleMatchComplete} onResetTeams={resetTeams} gameStep={gameStep} setGameStep={setGameStep} g1WinnerIdx={g1WinnerIdx} setG1WinnerIdx={setG1WinnerIdx} /></motion.div>}
                     {activeTab === 'settlement' && <motion.div key="settlement" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><DailyReport players={playersWithStats || []} matches={matches || []} /></motion.div>}
-                    {activeTab === 'players' && <motion.div key="players" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><PlayerManager players={playersWithStats || []} onAdd={addPlayer} onDelete={deletePlayer} onUpdate={updatePlayer} onResetAll={resetAllStats} isAdmin={isAdmin} /></motion.div>}
+                    {activeTab === 'players' && (
+                        <motion.div key="players" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                            <PlayerManager 
+                                players={playersWithStats || []} 
+                                onAdd={addPlayer} 
+                                onDelete={deletePlayer} 
+                                onUpdate={updatePlayer} 
+                                onResetAll={resetAllStats} 
+                                onExport={exportData}
+                                onImport={importData}
+                                isAdmin={isAdmin} 
+                            />
+                        </motion.div>
+                    )}
                     {activeTab === 'history' && (
                         <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6 pb-20">
                             <header className="flex items-center justify-between"><h3 className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1">歷史對仗</h3></header>

@@ -3,16 +3,20 @@ import { Trophy, GlassWater, TrendingUp, Medal, User, Activity, Zap } from 'luci
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { format, parseISO } from 'date-fns';
 
-const PlayerIcon = ({ icon, name, className = "w-6 h-6" }) => {
-    if (icon?.startsWith('data:image')) {
-        return (
-            <div className={`${className} rounded-full overflow-hidden border border-white/10 shadow-sm`}>
-                <img src={icon} alt={name} className="w-full h-full object-cover" />
-            </div>
-        );
-    }
+const PlayerIcon = ({ icon, name, isHot, isGoat, className = "w-6 h-6" }) => {
     return (
-        <span className="text-xl" role="img" aria-label={name}>{icon || '🏐'}</span>
+        <div className={`relative ${className}`}>
+            {isGoat && <div className="absolute inset-0 bg-yellow-500/40 rounded-full blur-md animate-pulse" />}
+            {isHot && <div className="absolute inset-0 bg-orange-500/40 rounded-full blur-md animate-pulse" />}
+            
+            <div className={`relative z-10 w-full h-full rounded-full flex items-center justify-center overflow-hidden border ${isGoat ? 'border-yellow-500 shadow-lg shadow-yellow-500/20' : isHot ? 'border-orange-500' : 'border-white/10'}`}>
+                {icon?.startsWith('data:image') ? (
+                    <img src={icon} alt={name} className="w-full h-full object-cover" />
+                ) : (
+                    <span className="text-xl">{icon || '🏐'}</span>
+                )}
+            </div>
+        </div>
     );
 };
 
@@ -191,7 +195,7 @@ export default function StatsHub({ players, matches }) {
                                             {idx + 1}
                                         </span>
                                         <span className="font-bold flex items-center gap-2 text-base">
-                                            <PlayerIcon icon={p.icon} name={p.name} className="w-7 h-7" />
+                                            <PlayerIcon icon={p.icon} name={p.name} isHot={p.isHot} isGoat={p.isGoat} className="w-7 h-7" />
                                             {p.name}
                                             <div className="flex gap-1">
                                                 {idx === 0 && (

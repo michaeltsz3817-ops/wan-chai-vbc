@@ -2,16 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { DollarSign, Coffee, Check, X, AlertCircle, RefreshCw, Trophy, Users, ArrowRight, Minus, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const PlayerIcon = ({ icon, name, className = "w-6 h-6" }) => {
-    if (icon?.startsWith('data:image')) {
-        return (
-            <div className={`${className} rounded-full overflow-hidden border border-white/10`}>
-                <img src={icon} alt={name} className="w-full h-full object-cover" />
-            </div>
-        );
-    }
+const PlayerIcon = ({ icon, name, isHot, isGoat, isCold, className = "w-6 h-6" }) => {
     return (
-        <span className="text-sm" role="img" aria-label={name}>{icon || '🏐'}</span>
+        <div className={`relative ${className}`}>
+            {isGoat && <div className="absolute inset-0 bg-yellow-500/40 rounded-full blur-md animate-pulse" />}
+            {isHot && <div className="absolute inset-0 bg-orange-500/40 rounded-full blur-md animate-pulse" />}
+            
+            <div className={`relative z-10 w-full h-full rounded-full flex items-center justify-center overflow-hidden border ${isGoat ? 'border-yellow-500 shadow-lg shadow-yellow-500/20' : isHot ? 'border-orange-500' : 'border-white/10'}`}>
+                {icon?.startsWith('data:image') ? (
+                    <img src={icon} alt={name} className="w-full h-full object-cover" />
+                ) : (
+                    <span className="text-sm">{icon || '🏐'}</span>
+                )}
+            </div>
+        </div>
     );
 };
 
@@ -249,7 +253,7 @@ export default function MatchSession({
                                     <div className="flex flex-wrap gap-2">
                                         {team.map(p => (
                                             <div key={p.id} className="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-2xl border border-white/5 shadow-inner">
-                                                <PlayerIcon icon={p.icon} name={p.name} className="w-5 h-5" />
+                                                <PlayerIcon icon={p.icon} name={p.name} isHot={p.isHot} isGoat={p.isGoat} className="w-5 h-5" />
                                                 <span className="text-[10px] font-black uppercase italic tracking-tighter">{p.name}</span>
                                             </div>
                                         ))}

@@ -2,22 +2,28 @@ import React, { useState } from 'react';
 import { Users, Filter, RefreshCw, Trophy, Play, Trash2, GripVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const PlayerIcon = ({ icon, name, className = "w-6 h-6" }) => {
-    if (icon?.startsWith('data:image')) {
-        return (
-            <div className={`${className} rounded-full overflow-hidden border border-white/10`}>
-                <img src={icon} alt={name} className="w-full h-full object-cover" />
-            </div>
-        );
-    }
+const PlayerIcon = ({ icon, name, isHot, isGoat, isCold, className = "w-6 h-6" }) => {
     return (
-        <span className="text-lg" role="img" aria-label={name}>{icon || '🏐'}</span>
+        <div className={`relative ${className}`}>
+            {isGoat && <div className="absolute inset-0 bg-yellow-500/40 rounded-full blur-md animate-pulse" />}
+            {isHot && <div className="absolute inset-0 bg-orange-500/40 rounded-full blur-md animate-pulse" />}
+            {isCold && <div className="absolute inset-0 bg-blue-500/40 rounded-full blur-md" />}
+            
+            <div className={`relative z-10 w-full h-full rounded-full flex items-center justify-center overflow-hidden border-2 ${isGoat ? 'border-yellow-500 shadow-lg shadow-yellow-500/20' : isHot ? 'border-orange-500' : 'border-white/10'}`}>
+                {icon?.startsWith('data:image') ? (
+                    <img src={icon} alt={name} className="w-full h-full object-cover" />
+                ) : (
+                    <span className="text-lg">{icon || '🏐'}</span>
+                )}
+            </div>
+            {isGoat && <div className="absolute -top-1 -right-1 z-20">👑</div>}
+        </div>
     );
 };
 
-export default function TeamGenerator({ players, teams, setTeams, onReset, onGenerateComplete }) {
+export default function TeamGenerator({ players, teams, setTeams, onReset, onGenerateComplete, presentPlayerIds, onResetAttendance }) {
     const [numTeams, setNumTeams] = useState(2);
-    const [selectedPlayers, setSelectedPlayers] = useState([]);
+    const [selectedPlayers, setSelectedPlayers] = useState(presentPlayerIds || []);
 
     const togglePlayer = (id) => {
         setSelectedPlayers(prev =>
@@ -38,11 +44,12 @@ export default function TeamGenerator({ players, teams, setTeams, onReset, onGen
 
         const activePlayers = players.filter(p => selectedPlayers.includes(p.id));
         
-        // Dynamic Skill: base skill + (form * weight)
-        // form is -1 to 1, weight of 0.5 means it can shift skill by half a point
+        // Dynamic Skill: effective skill (base + role) + (form * weight)
         const sorted = [...activePlayers].sort((a, b) => {
-            const effectiveSkillA = (a.skill || 3) + (a.form || 0) * 0.5;
-            const effectiveSkillB = (b.skill || 3) + (b.form || 0) * 0.5;
+            const skillA = a.effectiveSkill || (a.skill || 3);
+            const skillB = b.effectiveSkill || (b.skill || 3);
+            const effectiveSkillA = skillA + (a.form || 0) * 0.5;
+            const effectiveSkillB = skillB + (b.form || 0) * 0.5;
             return effectiveSkillB - effectiveSkillA;
         });
 
@@ -55,6 +62,26 @@ export default function TeamGenerator({ players, teams, setTeams, onReset, onGen
             const teamIdx = isForward ? (index % numTeams) : (numTeams - 1 - (index % numTeams));
             newTeams[teamIdx].push(player);
         });
+
+        // 🚨 Hidden Exclusion Rule
+        const ex1 = '13868';
+        const ex2 = '17890';
+        const teamWithEx1 = newTeams.findIndex(t => t.some(p => p.id === ex1 || p.id === Number(ex1)));
+        const teamWithEx2 = newTeams.findIndex(t => t.some(p => p.id === ex2 || p.id === Number(ex2)));
+
+        if (teamWithEx1 !== -1 && teamWithEx1 === teamWithEx2) {
+            // Both are in the same team. Swap one of them.
+            // Find a target team (not the current one)
+            const targetTeamIdx = (teamWithEx1 + 1) % newTeams.length;
+            const p2 = newTeams[teamWithEx1].find(p => p.id === ex2 || p.id === Number(ex2));
+            
+            if (p2 && newTeams[targetTeamIdx].length > 0) {
+                // Swap p2 with someone from target team
+                const pSwap = newTeams[targetTeamIdx][0];
+                newTeams[teamWithEx1] = newTeams[teamWithEx1].map(p => p.id === p2.id ? pSwap : p);
+                newTeams[targetTeamIdx] = newTeams[targetTeamIdx].map(p => p.id === pSwap.id ? p2 : p);
+            }
+        }
 
         setTeams(newTeams);
         // Automatically switch to match page
@@ -133,37 +160,26 @@ export default function TeamGenerator({ players, teams, setTeams, onReset, onGen
                 </div>
             </header>
 
-            {/* Selection Options */}
+            {/* Selection Status */}
             <section className="space-y-4">
                 <div className="flex items-center justify-between ml-1">
-                    <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">選擇出場成員 ({selectedPlayers.length})</h3>
+                    <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">今日出場 ({selectedPlayers.length})</h3>
                     <button
-                        onClick={selectAll}
-                        className="text-[10px] font-black text-emerald-400 uppercase tracking-widest hover:text-emerald-300"
+                        onClick={onResetAttendance}
+                        className="text-[10px] font-black text-red-400 uppercase tracking-widest hover:text-red-300 flex items-center gap-1 bg-red-400/10 px-3 py-1 rounded-full border border-red-400/20"
                     >
-                        {selectedPlayers.length === players.length ? '取消全部' : '全部選擇'}
+                        <RefreshCw className="w-3 h-3" /> 修改名單
                     </button>
                 </div>
 
-                <div className="grid grid-cols-4 gap-3">
-                    {players.map(p => (
-                        <button
-                            key={p.id}
-                            onClick={() => togglePlayer(p.id)}
-                            className={`flex flex-col items-center gap-2 p-3 rounded-2xl transition-all active:scale-95 border ${selectedPlayers.includes(p.id)
-                                ? 'bg-emerald-500/10 border-emerald-500/50 shadow-lg shadow-emerald-500/5'
-                                : 'bg-white/5 border-transparent grayscale brightness-50 opacity-40'
-                                }`}
-                        >
-                            <div className="relative">
-                                <PlayerIcon icon={p.icon} name={p.name} className="w-10 h-10" />
-                                {p.form !== 0 && (
-                                    <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-[#050505] animate-pulse ${p.form > 0 ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                                )}
-                            </div>
-                            <span className="text-[10px] font-black truncate w-full text-center uppercase tracking-tighter">{p.name}</span>
-                        </button>
+                <div className="flex flex-wrap gap-2">
+                    {players.filter(p => selectedPlayers.includes(p.id)).map(p => (
+                        <div key={p.id} className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-2xl">
+                            <PlayerIcon icon={p.icon} name={p.name} isHot={p.isHot} isGoat={p.isGoat} className="w-5 h-5" />
+                            <span className="text-[10px] font-black uppercase tracking-tighter">{p.name}</span>
+                        </div>
                     ))}
+                    {selectedPlayers.length === 0 && <p className="text-[10px] text-gray-600 italic">尚未點名...</p>}
                 </div>
             </section>
 
@@ -232,7 +248,7 @@ export default function TeamGenerator({ players, teams, setTeams, onReset, onGen
                                                 >
                                                     <GripVertical className="w-4 h-4" />
                                                 </div>
-                                                <PlayerIcon icon={p.icon} name={p.name} className="w-7 h-7" />
+                                                <PlayerIcon icon={p.icon} name={p.name} isHot={p.isHot} isGoat={p.isGoat} className="w-7 h-7" />
                                                 <div className="flex flex-col">
                                                     <span className="font-bold text-sm tracking-tight">{p.name}</span>
                                                     {p.form !== 0 && (
