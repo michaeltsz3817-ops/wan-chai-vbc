@@ -23,26 +23,11 @@ const PlayerIcon = ({ icon, name, isHot, isGoat, isCold, className = "w-6 h-6" }
 
 export default function TeamGenerator({ players, teams, setTeams, onReset, onGenerateComplete, presentPlayerIds, onResetAttendance }) {
     const [numTeams, setNumTeams] = useState(2);
-    const [selectedPlayers, setSelectedPlayers] = useState(presentPlayerIds || []);
-
-    const togglePlayer = (id) => {
-        setSelectedPlayers(prev =>
-            prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
-        );
-    };
-
-    const selectAll = () => {
-        if (selectedPlayers.length === players.length) {
-            setSelectedPlayers([]);
-        } else {
-            setSelectedPlayers(players.map(p => p.id));
-        }
-    };
 
     const generateTeams = () => {
-        if (selectedPlayers.length < 2) return;
+        if (!presentPlayerIds || presentPlayerIds.length < 2) return;
 
-        const activePlayers = players.filter(p => selectedPlayers.includes(p.id));
+        const activePlayers = players.filter(p => presentPlayerIds.includes(p.id));
         
         // Dynamic Skill: effective skill (base + role) + (form * weight)
         const sorted = [...activePlayers].sort((a, b) => {
@@ -163,7 +148,7 @@ export default function TeamGenerator({ players, teams, setTeams, onReset, onGen
             {/* Selection Status */}
             <section className="space-y-4">
                 <div className="flex items-center justify-between ml-1">
-                    <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">今日出場 ({selectedPlayers.length})</h3>
+                    <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">今日出場 ({presentPlayerIds?.length || 0})</h3>
                     <button
                         onClick={onResetAttendance}
                         className="text-[10px] font-black text-red-400 uppercase tracking-widest hover:text-red-300 flex items-center gap-1 bg-red-400/10 px-3 py-1 rounded-full border border-red-400/20"
@@ -173,20 +158,20 @@ export default function TeamGenerator({ players, teams, setTeams, onReset, onGen
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                    {players.filter(p => selectedPlayers.includes(p.id)).map(p => (
+                    {players.filter(p => presentPlayerIds?.includes(p.id)).map(p => (
                         <div key={p.id} className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-2xl">
                             <PlayerIcon icon={p.icon} name={p.name} isHot={p.isHot} isGoat={p.isGoat} className="w-5 h-5" />
                             <span className="text-[10px] font-black uppercase tracking-tighter">{p.name}</span>
                         </div>
                     ))}
-                    {selectedPlayers.length === 0 && <p className="text-[10px] text-gray-600 italic">尚未點名...</p>}
+                    {(!presentPlayerIds || presentPlayerIds.length === 0) && <p className="text-[10px] text-gray-600 italic">尚未點名...</p>}
                 </div>
             </section>
 
             <div className="flex gap-3">
                 <button
                     onClick={generateTeams}
-                    disabled={selectedPlayers.length < (numTeams * 2)}
+                    disabled={!presentPlayerIds || presentPlayerIds.length < (numTeams * 2)}
                     className="flex-1 py-5 bg-emerald-500 rounded-[32px] font-black italic text-xl tracking-tighter uppercase shadow-2xl shadow-emerald-500/30 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale"
                 >
                     {teams.length > 0 ? '重新平衡分隊' : '自動平衡分隊'}

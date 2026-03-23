@@ -60,16 +60,26 @@ function App() {
         }
     });
 
+    const [isAttendanceConfirmed, setIsAttendanceConfirmed] = useState(() => {
+        try {
+            const saved = localStorage.getItem('vbc-attendance-confirmed');
+            return saved === 'true';
+        } catch (e) {
+            return false;
+        }
+    });
+
     // Persistence
     useEffect(() => {
         try {
             localStorage.setItem('vbc-players', JSON.stringify(players));
             localStorage.setItem('vbc-matches', JSON.stringify(matches));
             localStorage.setItem('vbc-present', JSON.stringify(presentPlayerIds));
+            localStorage.setItem('vbc-attendance-confirmed', isAttendanceConfirmed.toString());
         } catch (error) {
             console.error('Persistence failed:', error);
         }
-    }, [players, matches, presentPlayerIds]);
+    }, [players, matches, presentPlayerIds, isAttendanceConfirmed]);
 
     // Data Migration: Ensure all players have skills object
     useEffect(() => {
@@ -219,7 +229,16 @@ function App() {
         );
     };
 
-    const resetAttendance = () => setPresentPlayerIds([]);
+    const resetAttendance = () => {
+        setPresentPlayerIds([]);
+        setIsAttendanceConfirmed(false);
+    };
+    
+    const confirmAttendance = () => {
+        if (presentPlayerIds.length >= 2) {
+            setIsAttendanceConfirmed(true);
+        }
+    };
 
     const exportData = () => {
         const data = {
@@ -298,7 +317,7 @@ function App() {
                     {activeTab === 'dashboard' && <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><StatsHub players={playersWithStats || []} matches={matches || []} /></motion.div>}
                     {activeTab === 'teaming' && (
                         <motion.div key="teaming" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                            {presentPlayerIds.length === 0 ? (
+                            {!isAttendanceConfirmed ? (
                                 <section className="space-y-6">
                                     <div className="flex items-center justify-between">
                                         <h2 className="text-2xl font-black italic tracking-tighter uppercase text-white">今日 <span className="text-emerald-400">CHECK-IN</span></h2>
@@ -321,7 +340,7 @@ function App() {
                                     </div>
                                     <button 
                                         disabled={presentPlayerIds.length < 2}
-                                        onClick={() => console.log('Attendance Confirmed')} 
+                                        onClick={confirmAttendance} 
                                         className="w-full py-5 bg-emerald-500 rounded-[32px] font-black italic text-xl tracking-tighter uppercase shadow-2xl shadow-emerald-500/30 active:scale-95 transition-all disabled:opacity-30"
                                     >
                                         確認名單 ({presentPlayerIds.length})
