@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Coffee, Check, X, AlertCircle, RefreshCw, Trophy, Users, ArrowRight, Minus, Plus } from 'lucide-react';
+import { DollarSign, Coffee, Check, X, AlertCircle, RefreshCw, Trophy, Users, ArrowRight, Minus, Plus, Zap, Shield, Target, Hand, Layers, UserCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const PlayerIcon = ({ icon, name, isHot, isGoat, isCold, className = "w-6 h-6" }) => {
+const ROLES = {
+    none: { label: '自由人', icon: UserCircle },
+    cannon: { label: '大炮 (Cannon)', icon: Zap },
+    wall: { label: '長城 (Wall)', icon: Layers },
+    maestro: { label: '指揮官 (Maestro)', icon: Hand },
+    guardian: { label: '守護者 (Guardian)', icon: Shield },
+    server: { label: '發球機器 (Server)', icon: Target }
+};
+
+const PlayerIcon = ({ icon, name, role, isHot, isGoat, isCold, className = "w-6 h-6" }) => {
     return (
         <div className={`relative ${className}`}>
             {isGoat && <div className="absolute inset-0 bg-yellow-500/40 rounded-full blur-md animate-pulse" />}
@@ -15,6 +24,12 @@ const PlayerIcon = ({ icon, name, isHot, isGoat, isCold, className = "w-6 h-6" }
                     <span className="text-sm">{icon || '🏐'}</span>
                 )}
             </div>
+            {/* Role Badge */}
+            {role && role !== 'none' && ROLES[role] && (
+                <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-md flex items-center justify-center shadow-lg border border-black/20 z-20">
+                    {React.createElement(ROLES[role].icon, { className: "w-2 h-2 text-white" })}
+                </div>
+            )}
         </div>
     );
 };
@@ -253,7 +268,7 @@ export default function MatchSession({
                                     <div className="flex flex-wrap gap-2">
                                         {team.map(p => (
                                             <div key={p.id} className="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-2xl border border-white/5 shadow-inner">
-                                                <PlayerIcon icon={p.icon} name={p.name} isHot={p.isHot} isGoat={p.isGoat} className="w-5 h-5" />
+                                                <PlayerIcon icon={p.icon} name={p.name} role={p.role} isHot={p.isHot} isGoat={p.isGoat} className="w-5 h-5" />
                                                 <span className="text-[10px] font-black uppercase italic tracking-tighter">{p.name}</span>
                                             </div>
                                         ))}

@@ -256,12 +256,14 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
                     <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white">
                         {editingId ? '修改' : '成員'} <span className="text-emerald-400">{editingId ? 'PROFILE' : 'JOIN'}</span>
                     </h2>
-                    <button 
-                        onClick={() => setShowAddForm(!showAddForm)}
-                        className={`p-3 rounded-2xl transition-all ${showAddForm ? 'bg-red-500/10 text-red-500 rotate-45' : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'}`}
-                    >
-                        <Plus className="w-6 h-6" />
-                    </button>
+                    {isAdmin && (
+                        <button 
+                            onClick={() => setShowAddForm(!showAddForm)}
+                            className={`p-3 rounded-2xl transition-all ${showAddForm ? 'bg-red-500/10 text-red-500 rotate-45' : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'}`}
+                        >
+                            <Plus className="w-6 h-6" />
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -329,8 +331,16 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
                             <motion.div layout key={p.id} className={`p-5 glass rounded-[32px] flex flex-col border transition-all group ${editingId === p.id ? 'border-yellow-500/50 bg-yellow-500/10' : 'border-white/5 hover:border-white/10'}`}>
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform overflow-hidden">
-                                            {p.icon && p.icon.startsWith('data:image') ? <img src={p.icon} alt={p.name} className="w-full h-full object-cover" /> : <span className="text-3xl">{p.icon || '🏐'}</span>}
+                                        <div className="relative w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+                                            <div className="w-full h-full rounded-2xl overflow-hidden">
+                                                {p.icon && p.icon.startsWith('data:image') ? <img src={p.icon} alt={p.name} className="w-full h-full object-cover" /> : <span className="text-3xl">{p.icon || '🏐'}</span>}
+                                            </div>
+                                            {/* Role Badge */}
+                                            {p.role && p.role !== 'none' && ROLES[p.role] && (
+                                                <div className="absolute -top-1 -right-1 w-6 h-6 bg-emerald-500 rounded-lg flex items-center justify-center shadow-lg border border-black/20 z-10">
+                                                    {React.createElement(ROLES[p.role].icon, { className: "w-3.5 h-3.5 text-white" })}
+                                                </div>
+                                            )}
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2">
@@ -344,25 +354,33 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
                                             </div>
                                             <div className="flex gap-4 mt-1">
                                                 <div className="flex items-center gap-2">
-                                                    <select 
-                                                        value={p.role || 'none'} 
-                                                        onChange={(e) => onUpdate(p.id, { role: e.target.value })}
-                                                        className="bg-transparent text-[8px] font-black uppercase tracking-widest text-emerald-400 border border-emerald-500/30 rounded-full px-2 py-0.5 outline-none hover:bg-emerald-500/10 cursor-pointer"
-                                                    >
-                                                        {Object.entries(ROLES).map(([key, { label }]) => (
-                                                            <option key={key} value={key} className="bg-[#111]">{label}</option>
-                                                        ))}
-                                                    </select>
+                                                    {isAdmin ? (
+                                                        <select 
+                                                            value={p.role || 'none'} 
+                                                            onChange={(e) => onUpdate(p.id, { role: e.target.value })}
+                                                            className="bg-transparent text-[8px] font-black uppercase tracking-widest text-emerald-400 border border-emerald-500/30 rounded-full px-2 py-0.5 outline-none hover:bg-emerald-500/10 cursor-pointer"
+                                                        >
+                                                            {Object.entries(ROLES).map(([key, { label }]) => (
+                                                                <option key={key} value={key} className="bg-[#111]">{label}</option>
+                                                            ))}
+                                                        </select>
+                                                    ) : (
+                                                        <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400/60 bg-emerald-500/5 px-2 py-0.5 rounded-full border border-emerald-500/10">
+                                                            {ROLES[p.role || 'none']?.label}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">{p.wins || 0} 勝仗</span>
                                                 <span className={`text-[10px] font-bold uppercase tracking-widest ${p.totalMatches >= 10 ? 'text-yellow-500' : 'text-gray-500'}`}>{p.totalMatches || 0} 場經驗</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => startEdit(p)} className="p-3 text-gray-700 hover:text-yellow-500 hover:bg-yellow-500/10 rounded-2xl transition-all opacity-0 group-hover:opacity-100"><Edit2 className="w-5 h-5" /></button>
-                                        <button onClick={() => onDelete(p.id)} className="p-3 text-gray-700 hover:text-red-500 hover:bg-red-500/10 rounded-2xl transition-all opacity-0 group-hover:opacity-100"><Trash2 className="w-5 h-5" /></button>
-                                    </div>
+                                    {isAdmin && (
+                                        <div className="flex gap-2">
+                                            <button onClick={() => startEdit(p)} className="p-3 text-gray-700 hover:text-yellow-500 hover:bg-yellow-500/10 rounded-2xl transition-all opacity-0 group-hover:opacity-100"><Edit2 className="w-5 h-5" /></button>
+                                            <button onClick={() => onDelete(p.id)} className="p-3 text-gray-700 hover:text-red-500 hover:bg-red-500/10 rounded-2xl transition-all opacity-0 group-hover:opacity-100"><Trash2 className="w-5 h-5" /></button>
+                                        </div>
+                                    )}
                                 </div>
                                 <SkillCard player={p} onUpdate={onUpdate} />
                             </motion.div>
