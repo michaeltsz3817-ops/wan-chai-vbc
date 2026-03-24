@@ -70,14 +70,27 @@ function App() {
         }
     });
 
+    const [syncStatus, setSyncStatus] = useState('idle'); // 'idle', 'syncing', 'success', 'error'
+    const [syncError, setSyncError] = useState(null);
+
     // Firebase Synchronization
     useEffect(() => {
+        setSyncStatus('syncing');
         // Sync Players
         const unsubPlayers = onSnapshot(doc(db, 'vbc', 'players'), (snapshot) => {
             if (snapshot.exists()) {
                 const data = snapshot.data().list;
-                if (Array.isArray(data)) setPlayers(data.filter(Boolean));
+                if (Array.isArray(data)) {
+                    setPlayers(data.filter(Boolean));
+                    setSyncStatus('success');
+                }
+            } else {
+                setSyncStatus('success'); // Empty DB is still a "success" response
             }
+        }, (err) => {
+            console.error('Firebase Snapshot Error (Players):', err);
+            setSyncStatus('error');
+            setSyncError(err.message);
         });
 
         // Sync Matches
@@ -86,7 +99,7 @@ function App() {
                 const data = snapshot.data().list;
                 if (Array.isArray(data)) setMatches(data.filter(Boolean));
             }
-        });
+        }, (err) => console.error('Firebase Snapshot Error (Matches):', err));
 
         // Sync Attendance
         const unsubAttendance = onSnapshot(doc(db, 'vbc', 'attendance'), (snapshot) => {
@@ -95,7 +108,7 @@ function App() {
                 if (data.presentPlayerIds) setPresentPlayerIds(data.presentPlayerIds);
                 if (data.isAttendanceConfirmed !== undefined) setIsAttendanceConfirmed(data.isAttendanceConfirmed);
             }
-        });
+        }, (err) => console.error('Firebase Snapshot Error (Attendance):', err));
 
         // Sync Current Teams & Game State
         const unsubGameState = onSnapshot(doc(db, 'vbc', 'gamestate'), (snapshot) => {
@@ -105,7 +118,7 @@ function App() {
                 if (data.gameStep !== undefined) setGameStep(data.gameStep);
                 if (data.g1WinnerIdx !== undefined) setG1WinnerIdx(data.g1WinnerIdx);
             }
-        });
+        }, (err) => console.error('Firebase Snapshot Error (GameState):', err));
 
         return () => {
             unsubPlayers();
@@ -117,10 +130,18 @@ function App() {
 
     // Push changes to Firebase (Debounced if needed, but for small data it's fine)
     const syncToFirebase = async (collectionName, data) => {
+        setSyncStatus('syncing');
         try {
             await setDoc(doc(db, 'vbc', collectionName), data);
+            setSyncStatus('success');
         } catch (error) {
             console.error(`Firebase Sync failed for ${collectionName}:`, error);
+            setSyncStatus('error');
+            setSyncError(error.message);
+            // Alert user if rules are likely blocking writes
+            if (error.code === 'permission-denied') {
+                alert('Firebase 權限不足！請確保數據庫規則已設置為允許讀寫。');
+            }
         }
     };
 
@@ -370,12 +391,32 @@ function App() {
                             <p className="text-[8px] font-bold text-gray-500 tracking-[0.3em] uppercase ml-0.5">Volleyball Management System</p>
                         </div>
                     </div>
-                    <button onClick={() => setIsAdmin(!isAdmin)} className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black tracking-widest transition-all ${isAdmin ? 'bg-red-500 text-white shadow-lg shadow-red-500/30' : 'bg-white/5 text-gray-500'}`}>
-                        <ShieldCheck className={`w-3 h-3 ${isAdmin ? 'animate-pulse' : ''}`} />
-                        {isAdmin ? 'ADMIN ON' : 'ADMIN OFF'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[8px] font-black uppercase tracking-widest transition-all ${
+                            syncStatus === 'syncing' ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' :
+                            syncStatus === 'error' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
+                            'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                        }`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${
+                                syncStatus === 'syncing' ? 'bg-blue-400 animate-pulse' :
+                                syncStatus === 'error' ? 'bg-red-400' :
+                                'bg-emerald-400'
+                            }`} />
+                            {syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'error' ? 'Sync Error' : 'Synced'}
+                        </div>
+                        <button onClick={() => setIsAdmin(!isAdmin)} className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black tracking-widest transition-all ${isAdmin ? 'bg-red-500 text-white shadow-lg shadow-red-500/30' : 'bg-white/5 text-gray-500'}`}>
+                            <ShieldCheck className={`w-3 h-3 ${isAdmin ? 'animate-pulse' : ''}`} />
+                            {isAdmin ? 'ADMIN ON' : 'ADMIN OFF'}
+                        </button>
+                    </div>
                 </div>
             </header>
+
+            {syncStatus === 'error' && (
+                <div className="max-w-lg mx-auto p-4 mb-4 bg-red-500/20 border border-red-500/50 rounded-2xl text-[10px] font-bold text-red-200 uppercase tracking-wider text-center">
+                    ⚠️ Firebase Sync Error: {syncError || 'Check Database Rules'}
+                </div>
+            )}
 
             <main className="max-w-lg p-5 mx-auto relative z-10">
                 <AnimatePresence mode="wait">
@@ -463,6 +504,15 @@ function App() {
                                 onResetAll={resetAllStats} 
                                 onExport={exportData}
                                 onImport={importData}
+                                onPushToCloud={() => {
+                                    if (window.confirm('確定要將此裝置的所有數據上傳到雲端嗎？這會覆蓋雲端現有的數據。')) {
+                                        updatePlayersFirebase(players);
+                                        updateMatchesFirebase(matches);
+                                        updateAttendanceFirebase(presentPlayerIds, isAttendanceConfirmed);
+                                        updateGameStateFirebase(teams, gameStep, g1WinnerIdx);
+                                        alert('數據已上傳至雲端！');
+                                    }
+                                }}
                                 isAdmin={isAdmin} 
                             />
                         </motion.div>

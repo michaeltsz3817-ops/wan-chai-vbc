@@ -150,7 +150,7 @@ function SkillCard({ player, onUpdate }) {
     );
 }
 
-export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onResetAll, onExport, onImport, isAdmin }) {
+export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onResetAll, onExport, onImport, onPushToCloud, isAdmin }) {
     const [newName, setNewName] = useState('');
     const [selectedIcon, setSelectedIcon] = useState(EMOJIS[0]);
     const [editingId, setEditingId] = useState(null);
@@ -409,6 +409,13 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
                             <input type="file" accept=".json" onChange={onImport} className="hidden" />
                         </label>
                     </div>
+
+                    <button 
+                        onClick={onPushToCloud}
+                        className="w-full p-4 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+                    >
+                        ☁️ 將此機數據上傳至雲端 (Manual Push)
+                    </button>
 
                     <button 
                         onClick={onResetAll}
