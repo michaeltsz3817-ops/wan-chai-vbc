@@ -235,7 +235,7 @@ export default function DailyReport({ players, matches }) {
 
             <div className="p-6 glass rounded-[32px] text-[10px] text-gray-600 font-bold uppercase tracking-[0.2em] text-center bg-white/5 leading-relaxed border border-white/5">
                 請收錢人核對以上總數，確保金額正確。<br />
-                所有數據均以 localStorage 儲存於此瀏覽器。
+                <span className="text-emerald-400/50">數據已透過 Firebase 即時同步至所有裝置。</span>
             </div>
         </div>
     );

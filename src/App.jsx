@@ -8,6 +8,7 @@ import MatchSession from './components/MatchSession';
 import StatsHub from './components/StatsHub';
 import DailyReport from './components/DailyReport';
 import { Dock } from './components/ui/dock-two';
+import { db, doc, onSnapshot, setDoc } from './lib/firebase';
 
 const DEFAULT_SKILLS = { atk: 1, def: 1, srv: 1, set: 1, blk: 1, pwr: 1 };
 
@@ -69,16 +70,77 @@ function App() {
         }
     });
 
-    // Persistence
+    // Firebase Synchronization
     useEffect(() => {
+        // Sync Players
+        const unsubPlayers = onSnapshot(doc(db, 'vbc', 'players'), (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.data().list;
+                if (Array.isArray(data)) setPlayers(data.filter(Boolean));
+            }
+        });
+
+        // Sync Matches
+        const unsubMatches = onSnapshot(doc(db, 'vbc', 'matches'), (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.data().list;
+                if (Array.isArray(data)) setMatches(data.filter(Boolean));
+            }
+        });
+
+        // Sync Attendance
+        const unsubAttendance = onSnapshot(doc(db, 'vbc', 'attendance'), (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                if (data.presentPlayerIds) setPresentPlayerIds(data.presentPlayerIds);
+                if (data.isAttendanceConfirmed !== undefined) setIsAttendanceConfirmed(data.isAttendanceConfirmed);
+            }
+        });
+
+        // Sync Current Teams & Game State
+        const unsubGameState = onSnapshot(doc(db, 'vbc', 'gamestate'), (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                if (data.teams) setTeams(data.teams);
+                if (data.gameStep !== undefined) setGameStep(data.gameStep);
+                if (data.g1WinnerIdx !== undefined) setG1WinnerIdx(data.g1WinnerIdx);
+            }
+        });
+
+        return () => {
+            unsubPlayers();
+            unsubMatches();
+            unsubAttendance();
+            unsubGameState();
+        };
+    }, []);
+
+    // Push changes to Firebase (Debounced if needed, but for small data it's fine)
+    const syncToFirebase = async (collectionName, data) => {
         try {
-            localStorage.setItem('vbc-players', JSON.stringify(players));
-            localStorage.setItem('vbc-matches', JSON.stringify(matches));
-            localStorage.setItem('vbc-present', JSON.stringify(presentPlayerIds));
-            localStorage.setItem('vbc-attendance-confirmed', isAttendanceConfirmed.toString());
+            await setDoc(doc(db, 'vbc', collectionName), data);
         } catch (error) {
-            console.error('Persistence failed:', error);
+            console.error(`Firebase Sync failed for ${collectionName}:`, error);
         }
+    };
+
+    const updatePlayersFirebase = (newList) => syncToFirebase('players', { list: newList });
+    const updateMatchesFirebase = (newList) => syncToFirebase('matches', { list: newList });
+    const updateAttendanceFirebase = (presentIds, confirmed) => syncToFirebase('attendance', { presentPlayerIds: presentIds, isAttendanceConfirmed: confirmed });
+    const updateGameStateFirebase = (newTeams, newStep, newWinner) => 
+        syncToFirebase('gamestate', { 
+            teams: newTeams, 
+            gameStep: newStep !== undefined ? newStep : gameStep, 
+            g1WinnerIdx: newWinner !== undefined ? newWinner : g1WinnerIdx 
+        });
+
+    // Persistence Effect (Replaced localStorage with Firebase sync where appropriate)
+    useEffect(() => {
+        // We still keep localStorage as a local fallback/cache
+        localStorage.setItem('vbc-players', JSON.stringify(players));
+        localStorage.setItem('vbc-matches', JSON.stringify(matches));
+        localStorage.setItem('vbc-present', JSON.stringify(presentPlayerIds));
+        localStorage.setItem('vbc-attendance-confirmed', isAttendanceConfirmed.toString());
     }, [players, matches, presentPlayerIds, isAttendanceConfirmed]);
 
     // Data Migration: Ensure all players have skills object
@@ -105,16 +167,26 @@ function App() {
     }, [players, matches]);
 
     const addPlayer = (player) => {
-        setPlayers([...players, { ...player, skills: { ...DEFAULT_SKILLS } }]);
+        const newList = [...players, { ...player, skills: { ...DEFAULT_SKILLS } }];
+        setPlayers(newList);
+        updatePlayersFirebase(newList);
     };
-    const deletePlayer = (id) => setPlayers(players.filter(p => p.id !== id));
+    const deletePlayer = (id) => {
+        const newList = players.filter(p => p.id !== id);
+        setPlayers(newList);
+        updatePlayersFirebase(newList);
+    };
     const updatePlayer = (id, updates) => {
-        setPlayers(players.map(p => p.id === id ? { ...p, ...updates } : p));
+        const newList = players.map(p => p.id === id ? { ...p, ...updates } : p);
+        setPlayers(newList);
+        updatePlayersFirebase(newList);
     };
 
     const deleteMatch = (id) => {
         if (window.confirm('確定要刪除這場比賽紀錄嗎？')) {
-            setMatches(matches.filter(m => m.id !== id));
+            const newList = matches.filter(m => m.id !== id);
+            setMatches(newList);
+            updateMatchesFirebase(newList);
         }
     };
 
@@ -194,7 +266,9 @@ function App() {
             id: Date.now() + Math.random().toString(36).substr(2, 9),
             date: matchData.date || new Date().toISOString()
         };
-        setMatches([matchWithId, ...matches]);
+        const newList = [matchWithId, ...matches];
+        setMatches(newList);
+        updateMatchesFirebase(newList);
         if (matchData.isRotationMatch && matchData.gameStep === 2) {
             setActiveTab('dashboard');
         }
@@ -205,24 +279,29 @@ function App() {
             setTeams([]);
             setGameStep(0);
             setG1WinnerIdx(null);
+            updateGameStateFirebase([], 0, null);
             setActiveTab('teaming');
         }
     };
 
     const togglePresence = (id) => {
-        setPresentPlayerIds(prev => 
-            prev.includes(id) ? prev.filter(pid => pid !== id) : [...prev, id]
-        );
+        const newIds = presentPlayerIds.includes(id) 
+            ? presentPlayerIds.filter(pid => pid !== id) 
+            : [...presentPlayerIds, id];
+        setPresentPlayerIds(newIds);
+        updateAttendanceFirebase(newIds, isAttendanceConfirmed);
     };
 
     const resetAttendance = () => {
         setPresentPlayerIds([]);
         setIsAttendanceConfirmed(false);
+        updateAttendanceFirebase([], false);
     };
     
     const confirmAttendance = () => {
         if (presentPlayerIds.length >= 2) {
             setIsAttendanceConfirmed(true);
+            updateAttendanceFirebase(presentPlayerIds, true);
         }
     };
 
@@ -319,7 +398,13 @@ function App() {
                                                     : 'bg-white/5 border-transparent grayscale brightness-50 opacity-40'
                                                     }`}
                                             >
-                                                <span className="text-2xl">{p.icon || '🏐'}</span>
+                                                <div className="w-10 h-10 flex items-center justify-center pointer-events-none">
+                                                    {p.icon && p.icon.startsWith('data:image') ? (
+                                                        <img src={p.icon} alt={p.name} className="w-full h-full object-cover rounded-xl" />
+                                                    ) : (
+                                                        <span className="text-2xl">{p.icon || '🏐'}</span>
+                                                    )}
+                                                </div>
                                                 <span className="text-[10px] font-black truncate w-full text-center uppercase tracking-tighter">{p.name}</span>
                                             </button>
                                         ))}
@@ -333,11 +418,40 @@ function App() {
                                     </button>
                                 </section>
                             ) : (
-                                <TeamGenerator players={playersWithStats || []} teams={teams || []} setTeams={setTeams} onReset={resetTeams} onGenerateComplete={() => setActiveTab('play')} presentPlayerIds={presentPlayerIds} onResetAttendance={resetAttendance} />
+                                <TeamGenerator 
+                                    players={playersWithStats || []} 
+                                    teams={teams || []} 
+                                    setTeams={(newTeams) => {
+                                        setTeams(newTeams);
+                                        updateGameStateFirebase(newTeams);
+                                    }} 
+                                    onReset={resetTeams} 
+                                    onGenerateComplete={() => setActiveTab('play')} 
+                                    presentPlayerIds={presentPlayerIds} 
+                                    onResetAttendance={resetAttendance} 
+                                />
                             )}
                         </motion.div>
                     )}
-                    {activeTab === 'play' && <motion.div key="play" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}><MatchSession activeTeams={teams || []} onComplete={handleMatchComplete} onResetTeams={resetTeams} gameStep={gameStep} setGameStep={setGameStep} g1WinnerIdx={g1WinnerIdx} setG1WinnerIdx={setG1WinnerIdx} /></motion.div>}
+                    {activeTab === 'play' && (
+                        <motion.div key="play" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}>
+                            <MatchSession 
+                                activeTeams={teams || []} 
+                                onComplete={handleMatchComplete} 
+                                onResetTeams={resetTeams} 
+                                gameStep={gameStep} 
+                                setGameStep={(newStep) => {
+                                    setGameStep(newStep);
+                                    updateGameStateFirebase(teams, newStep);
+                                }} 
+                                g1WinnerIdx={g1WinnerIdx} 
+                                setG1WinnerIdx={(newWinner) => {
+                                    setG1WinnerIdx(newWinner);
+                                    updateGameStateFirebase(teams, gameStep, newWinner);
+                                }} 
+                            />
+                        </motion.div>
+                    )}
                     {activeTab === 'settlement' && <motion.div key="settlement" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><DailyReport players={playersWithStats || []} matches={matches || []} /></motion.div>}
                     {activeTab === 'players' && (
                         <motion.div key="players" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
