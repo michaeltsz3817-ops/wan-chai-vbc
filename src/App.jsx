@@ -8,6 +8,7 @@ import MatchSession from './components/MatchSession';
 import ManualMatchEntry from './components/ManualMatchEntry';
 import StatsHub from './components/StatsHub';
 import DailyReport from './components/DailyReport';
+import PlayerProfile from './components/PlayerProfile';
 import { Dock } from './components/ui/dock-two';
 import { db, doc, onSnapshot, setDoc } from './lib/firebase';
 import { DEFAULT_SKILLS } from './lib/constants';
@@ -19,6 +20,7 @@ function App() {
 
     const [activeTab, setActiveTab] = useState('dashboard');
     const [isManualEntry, setIsManualEntry] = useState(false);
+    const [selectedProfile, setSelectedProfile] = useState(null);
     const [isAdmin, setIsAdmin] = useState(false);
     
     // ... rest of the states ...
@@ -240,7 +242,11 @@ function App() {
             let losses = 0;
             let drinks = 0;
             let currentStreak = 0;
-            
+            let bestStreak = 0;
+            let currentLoseStreak = 0;
+            let hasPhoenix = false;
+            const dailyWins = {};
+
             const sortedMatches = [...(matches || [])]
                 .filter(m => m && m.date)
                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -256,16 +262,23 @@ function App() {
                 const wasInLoser = matchTeams.flat().some(lp => lp && lp.id === p.id) && !wasInWinner;
                 
                 if (wasInWinner) {
+                    if (currentLoseStreak >= 3) hasPhoenix = true;
                     wins += 1;
                     drinks += 1;
                     currentStreak += 1;
+                    currentLoseStreak = 0;
+                    if (currentStreak > bestStreak) bestStreak = currentStreak;
+                    const day = m.date?.split('T')[0];
+                    if (day) dailyWins[day] = (dailyWins[day] || 0) + 1;
                 } else if (wasInLoser) {
                     losses += 1;
                     drinks -= 1;
                     currentStreak = 0;
+                    currentLoseStreak += 1;
                 }
             });
 
+            const hasDailyFive = Object.values(dailyWins).some(c => c >= 5);
             const totalMatches = wins + losses;
             const earnedPoints = Math.floor(totalMatches / 10);
             const spentPoints = Object.values(p.skills || DEFAULT_SKILLS).reduce((a, b) => a + b, 0) - Object.keys(DEFAULT_SKILLS).length;
@@ -294,6 +307,9 @@ function App() {
                 totalMatches,
                 availablePoints,
                 effectiveSkill,
+                bestStreak,
+                hasPhoenix,
+                hasDailyFive,
                 isHot: currentStreak >= 3
             };
         }).filter(Boolean);
@@ -457,7 +473,7 @@ function App() {
                                     <Plus className="w-3.5 h-3.5" /> 補入戰績
                                 </button>
                             </div>
-                            <StatsHub players={playersWithStats || []} matches={matches || []} />
+                            <StatsHub players={playersWithStats || []} matches={matches || []} onSelectPlayer={setSelectedProfile} />
                         </motion.div>
                     )}
                     {activeTab === 'teaming' && (
@@ -637,6 +653,18 @@ function App() {
                     )}
                 </AnimatePresence>
             </main>
+
+            {/* Player Profile Modal */}
+            <AnimatePresence>
+                {selectedProfile && (
+                    <PlayerProfile
+                        player={selectedProfile}
+                        matches={matches || []}
+                        allPlayers={playersWithStats || []}
+                        onClose={() => setSelectedProfile(null)}
+                    />
+                )}
+            </AnimatePresence>
 
             <Dock 
                 items={[

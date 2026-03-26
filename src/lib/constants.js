@@ -21,3 +21,13 @@ export const ROLES = {
     guardian: { label: '守護者 (Guardian)', icon: Shield, bonus: 'def', desc: '防守 +1' },
     server: { label: '發球機器 (Server)', icon: Target, bonus: 'srv', desc: '發球 +1' }
 };
+
+export const ACHIEVEMENTS = [
+    { id: 'streak3', name: '連勝王', icon: '🔥', desc: '達成 3 場連勝', check: (p) => (p.bestStreak || 0) >= 3 },
+    { id: 'wins10', name: '霸主', icon: '👑', desc: '累計 10 勝', check: (p) => (p.wins || 0) >= 10 },
+    { id: 'wins20', name: '傳奇', icon: '🏆', desc: '累計 20 勝', check: (p) => (p.wins || 0) >= 20 },
+    { id: 'phoenix', name: '不死鳥', icon: '💀', desc: '連負 3 場後勝出', check: (p) => p.hasPhoenix },
+    { id: 'daily5', name: '火力全開', icon: '⚡', desc: '單日 5 勝', check: (p) => p.hasDailyFive },
+    { id: 'unbeaten5', name: '鐵壁', icon: '🛡️', desc: '連續 5 場不敗', check: (p) => (p.bestStreak || 0) >= 5 },
+    { id: 'matches50', name: '老兵', icon: '🎖️', desc: '累計出場 50 場', check: (p) => (p.totalMatches || 0) >= 50 },
+];
