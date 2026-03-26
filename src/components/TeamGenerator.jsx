@@ -30,22 +30,25 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
             newTeams[teamIdx].push(player);
         });
 
-        // 🚨 Hidden Exclusion Rule
+        // 🚨 Hidden Exclusion Rule: ex1 and ex2 never together
         const ex1 = '13868';
         const ex2 = '17890';
-        const teamWithEx1 = newTeams.findIndex(t => t.some(p => p.id === ex1 || p.id === Number(ex1)));
-        const teamWithEx2 = newTeams.findIndex(t => t.some(p => p.id === ex2 || p.id === Number(ex2)));
+        const teamWithEx1 = newTeams.findIndex(t => t.some(p => String(p.id) === ex1));
+        const teamWithEx2 = newTeams.findIndex(t => t.some(p => String(p.id) === ex2));
 
         if (teamWithEx1 !== -1 && teamWithEx1 === teamWithEx2) {
-            // Both are in the same team. Swap one of them.
             const targetTeamIdx = (teamWithEx1 + 1) % newTeams.length;
-            const p2 = newTeams[teamWithEx1].find(p => p.id === ex2 || p.id === Number(ex2));
+            const p2 = newTeams[teamWithEx1].find(p => String(p.id) === ex2);
             
-            if (p2 && newTeams[targetTeamIdx].length > 0) {
-                // Swap p2 with someone from target team
-                const pSwap = newTeams[targetTeamIdx][0];
-                newTeams[teamWithEx1] = newTeams[teamWithEx1].map(p => p.id === p2.id ? pSwap : p);
-                newTeams[targetTeamIdx] = newTeams[targetTeamIdx].map(p => p.id === pSwap.id ? p2 : p);
+            if (p2) {
+                if (newTeams[targetTeamIdx].length > 0) {
+                    const pSwap = newTeams[targetTeamIdx][0];
+                    newTeams[teamWithEx1] = newTeams[teamWithEx1].map(p => p.id === p2.id ? pSwap : p);
+                    newTeams[targetTeamIdx] = newTeams[targetTeamIdx].map(p => p.id === pSwap.id ? p2 : p);
+                } else {
+                    newTeams[teamWithEx1] = newTeams[teamWithEx1].filter(p => p.id !== p2.id);
+                    newTeams[targetTeamIdx].push(p2);
+                }
             }
         }
 
