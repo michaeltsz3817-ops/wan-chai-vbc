@@ -5,12 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PlayerManager from './components/PlayerManager';
 import TeamGenerator from './components/TeamGenerator';
 import MatchSession from './components/MatchSession';
+import ManualMatchEntry from './components/ManualMatchEntry';
 import StatsHub from './components/StatsHub';
 import DailyReport from './components/DailyReport';
 import { Dock } from './components/ui/dock-two';
 import { db, doc, onSnapshot, setDoc } from './lib/firebase';
-
-const DEFAULT_SKILLS = { atk: 1, def: 1, srv: 1, set: 1, blk: 1, pwr: 1 };
+import { DEFAULT_SKILLS } from './lib/constants';
 
 function App() {
     useEffect(() => {
@@ -18,6 +18,7 @@ function App() {
     }, []);
 
     const [activeTab, setActiveTab] = useState('dashboard');
+    const [isManualEntry, setIsManualEntry] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
     
     // ... rest of the states ...
@@ -50,6 +51,7 @@ function App() {
     });
 
     const [teams, setTeams] = useState([]);
+    const [restingPlayers, setRestingPlayers] = useState([]);
     const [gameStep, setGameStep] = useState(0);
     const [g1WinnerIdx, setG1WinnerIdx] = useState(null);
     const [presentPlayerIds, setPresentPlayerIds] = useState(() => {
@@ -114,7 +116,18 @@ function App() {
         const unsubGameState = onSnapshot(doc(db, 'vbc', 'gamestate'), (snapshot) => {
             if (snapshot.exists()) {
                 const data = snapshot.data();
-                if (data.teams) setTeams(data.teams);
+                // Reconstruct teams from flattened object
+                if (data.teamsObj) {
+                    const reconstructed = Object.keys(data.teamsObj)
+                        .sort()
+                        .map(key => data.teamsObj[key]);
+                    setTeams(reconstructed);
+                } else if (data.teams && Array.isArray(data.teams) && !Array.isArray(data.teams[0])) {
+                    // Fallback for non-nested arrays if any
+                    setTeams(data.teams);
+                }
+                
+                if (data.resting) setRestingPlayers(data.resting);
                 if (data.gameStep !== undefined) setGameStep(data.gameStep);
                 if (data.g1WinnerIdx !== undefined) setG1WinnerIdx(data.g1WinnerIdx);
             }
@@ -148,12 +161,21 @@ function App() {
     const updatePlayersFirebase = (newList) => syncToFirebase('players', { list: newList });
     const updateMatchesFirebase = (newList) => syncToFirebase('matches', { list: newList });
     const updateAttendanceFirebase = (presentIds, confirmed) => syncToFirebase('attendance', { presentPlayerIds: presentIds, isAttendanceConfirmed: confirmed });
-    const updateGameStateFirebase = (newTeams, newStep, newWinner) => 
+    const updateGameStateFirebase = (newTeams, newStep, newWinner, newResting) => {
+        const teamsObj = {};
+        if (Array.isArray(newTeams)) {
+            newTeams.forEach((team, idx) => {
+                teamsObj[`team${idx}`] = team;
+            });
+        }
+
         syncToFirebase('gamestate', { 
-            teams: newTeams, 
+            teamsObj,
+            resting: newResting !== undefined ? newResting : restingPlayers,
             gameStep: newStep !== undefined ? newStep : gameStep, 
             g1WinnerIdx: newWinner !== undefined ? newWinner : g1WinnerIdx 
         });
+    };
 
     // Persistence Effect (Replaced localStorage with Firebase sync where appropriate)
     useEffect(() => {
@@ -224,12 +246,14 @@ function App() {
                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             
             sortedMatches.forEach(m => {
+                if (!m || !m.teams) return;
+                const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams).sort().map(k => m.teams[k]);
                 const winnerTeamIndex = m.absoluteWinnerIdx !== undefined ? m.absoluteWinnerIdx : m.winnerTeam;
-                const winnerTeam = m.teams[winnerTeamIndex];
+                const winnerTeam = matchTeams[winnerTeamIndex];
                 if (!winnerTeam) return;
 
                 const wasInWinner = winnerTeam.some(wp => wp && wp.id === p.id);
-                const wasInLoser = m.teams.flat().some(lp => lp && lp.id === p.id) && !wasInWinner;
+                const wasInLoser = matchTeams.flat().some(lp => lp && lp.id === p.id) && !wasInWinner;
                 
                 if (wasInWinner) {
                     wins += 1;
@@ -420,7 +444,22 @@ function App() {
 
             <main className="max-w-lg p-5 mx-auto relative z-10">
                 <AnimatePresence mode="wait">
-                    {activeTab === 'dashboard' && <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><StatsHub players={playersWithStats || []} matches={matches || []} /></motion.div>}
+                    {activeTab === 'dashboard' && (
+                        <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                            <div className="flex justify-end mb-4 pr-1">
+                                <button 
+                                    onClick={() => {
+                                        setIsManualEntry(true);
+                                        setActiveTab('play');
+                                    }}
+                                    className="p-3 bg-white/5 border border-white/10 rounded-2xl flex items-center gap-2 text-[10px] font-black uppercase text-gray-400 hover:text-white transition-all shadow-sm"
+                                >
+                                    <Plus className="w-3.5 h-3.5" /> 補入戰績
+                                </button>
+                            </div>
+                            <StatsHub players={playersWithStats || []} matches={matches || []} />
+                        </motion.div>
+                    )}
                     {activeTab === 'teaming' && (
                         <motion.div key="teaming" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                             {!isAttendanceConfirmed ? (
@@ -462,35 +501,72 @@ function App() {
                                 <TeamGenerator 
                                     players={playersWithStats || []} 
                                     teams={teams || []} 
-                                    setTeams={(newTeams) => {
+                                    restingPlayers={restingPlayers || []}
+                                    setTeams={(newTeams, newResting = restingPlayers) => {
                                         setTeams(newTeams);
-                                        updateGameStateFirebase(newTeams);
-                                    }} 
-                                    onReset={resetTeams} 
-                                    onGenerateComplete={() => setActiveTab('play')} 
-                                    presentPlayerIds={presentPlayerIds} 
-                                    onResetAttendance={resetAttendance} 
+                                        setRestingPlayers(newResting);
+                                        updateGameStateFirebase(newTeams, gameStep, g1WinnerIdx, newResting);
+                                    }}
+                                    onReset={resetTeams}
+                                    onGenerateComplete={() => setActiveTab('play')}
+                                    presentPlayerIds={presentPlayerIds}
+                                    onResetAttendance={resetAttendance}
                                 />
                             )}
                         </motion.div>
                     )}
                     {activeTab === 'play' && (
                         <motion.div key="play" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}>
-                            <MatchSession 
-                                activeTeams={teams || []} 
-                                onComplete={handleMatchComplete} 
-                                onResetTeams={resetTeams} 
-                                gameStep={gameStep} 
-                                setGameStep={(newStep) => {
-                                    setGameStep(newStep);
-                                    updateGameStateFirebase(teams, newStep);
-                                }} 
-                                g1WinnerIdx={g1WinnerIdx} 
-                                setG1WinnerIdx={(newWinner) => {
-                                    setG1WinnerIdx(newWinner);
-                                    updateGameStateFirebase(teams, gameStep, newWinner);
-                                }} 
-                            />
+                            {isManualEntry ? (
+                                <ManualMatchEntry 
+                                    players={players} 
+                                    onComplete={(matchData) => {
+                                        handleMatchComplete(matchData);
+                                        setIsManualEntry(false);
+                                        setActiveTab('dashboard');
+                                    }}
+                                    onCancel={() => setIsManualEntry(false)}
+                                />
+                            ) : teams && teams.length > 0 ? (
+                                <MatchSession 
+                                    activeTeams={teams || []} 
+                                    restingPlayers={restingPlayers || []}
+                                    onComplete={handleMatchComplete} 
+                                    onResetTeams={resetTeams} 
+                                    gameStep={gameStep} 
+                                    setGameStep={(newStep) => {
+                                        setGameStep(newStep);
+                                        updateGameStateFirebase(teams, newStep);
+                                    }} 
+                                    g1WinnerIdx={g1WinnerIdx} 
+                                    setG1WinnerIdx={(newWinner) => {
+                                        setG1WinnerIdx(newWinner);
+                                        updateGameStateFirebase(teams, gameStep, newWinner);
+                                    }}
+                                    onManualEntry={() => setIsManualEntry(true)}
+                                />
+                            ) : (
+                                <div className="text-center py-20 space-y-4">
+                                    <div className="w-20 h-20 bg-white/5 rounded-[40px] flex items-center justify-center mx-auto border border-white/5">
+                                        <Trophy className="w-10 h-10 text-gray-600" />
+                                    </div>
+                                    <p className="text-sm font-black text-gray-500 uppercase tracking-widest italic">尚未生成隊伍</p>
+                                    <div className="flex flex-col gap-3 max-w-[200px] mx-auto">
+                                        <button 
+                                            onClick={() => setActiveTab('teaming')} 
+                                            className="px-6 py-4 bg-emerald-500 rounded-2xl text-[10px] font-black uppercase italic tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+                                        >
+                                            前往組隊頁面
+                                        </button>
+                                        <button 
+                                            onClick={() => setIsManualEntry(true)} 
+                                            className="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 active:scale-95 transition-all text-gray-400"
+                                        >
+                                            手動補入戰績
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </motion.div>
                     )}
                     {activeTab === 'settlement' && <motion.div key="settlement" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><DailyReport players={playersWithStats || []} matches={matches || []} /></motion.div>}
@@ -509,7 +585,7 @@ function App() {
                                         updatePlayersFirebase(players);
                                         updateMatchesFirebase(matches);
                                         updateAttendanceFirebase(presentPlayerIds, isAttendanceConfirmed);
-                                        updateGameStateFirebase(teams, gameStep, g1WinnerIdx);
+                                        updateGameStateFirebase(teams, gameStep, g1WinnerIdx, restingPlayers);
                                         alert('數據已上傳至雲端！');
                                     }
                                 }}
@@ -539,7 +615,18 @@ function App() {
                                                 {isAdmin && <button onClick={(e) => { e.stopPropagation(); deleteMatch(m.id); }} className="p-3 bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-lg active:scale-95 z-20 relative"><Trash2 className="w-4 h-4" /></button>}
                                             </div>
                                             <div className="space-y-3">
-                                                <div className="flex flex-wrap gap-2">{m.teams && m.teams[m.winnerTeam] && m.teams[m.winnerTeam].map(p => p && (<div key={p.id} className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20"><span className="text-[10px] font-black uppercase text-emerald-400">{p.name}</span></div>))}</div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {(() => {
+                                                        const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams || {}).sort().map(k => m.teams[k]);
+                                                        const winnerIdx = m.winnerTeam ?? 0;
+                                                        const winners = matchTeams[winnerIdx];
+                                                        return winners?.map(p => p && (
+                                                            <div key={p.id} className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                                                                <span className="text-[10px] font-black uppercase text-emerald-400">{p.name}</span>
+                                                            </div>
+                                                        ));
+                                                    })()}
+                                                </div>
                                                 <div className="h-[1px] bg-white/5 w-full" /><p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest pl-1">{m.date ? new Date(m.date).toLocaleString('zh-HK', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Unknown Date'} HKT</p>
                                             </div>
                                         </motion.div>

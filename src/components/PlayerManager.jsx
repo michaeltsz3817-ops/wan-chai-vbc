@@ -2,26 +2,8 @@ import React, { useState, useRef } from 'react';
 import { UserPlus, Trash2, UserCircle, Camera, Check, X, Edit2, Zap, Shield, Target, Hand, Layers, Dumbbell, Star, ChevronDown, ChevronUp, Plus, Minus, Search, Download, Upload, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
-
-const EMOJIS = ['🏐', '🔥', '⭐️', '👑', '🦁', '🦅', '⚡️', '😎', '💪', '🧤', '🎯', '🚀'];
-
-const SKILL_LABELS = {
-    atk: { label: '進攻', icon: Zap, color: 'text-orange-400' },
-    def: { label: '防守', icon: Shield, color: 'text-blue-400' },
-    srv: { label: '發球', icon: Target, color: 'text-red-400' },
-    set: { label: '舉球', icon: Hand, color: 'text-emerald-400' },
-    blk: { label: '攔網', icon: Layers, color: 'text-purple-400' },
-    pwr: { label: '體力', icon: Dumbbell, color: 'text-yellow-400' }
-};
-
-const ROLES = {
-    none: { label: '自由人', icon: UserCircle, bonus: null },
-    cannon: { label: '大炮 (Cannon)', icon: Zap, bonus: 'atk', desc: '進攻 +1' },
-    wall: { label: '長城 (Wall)', icon: Layers, bonus: 'blk', desc: '攔網 +1' },
-    maestro: { label: '指揮官 (Maestro)', icon: Hand, bonus: 'set', desc: '舉球 +1' },
-    guardian: { label: '守護者 (Guardian)', icon: Shield, bonus: 'def', desc: '防守 +1' },
-    server: { label: '發球機器 (Server)', icon: Target, bonus: 'srv', desc: '發球 +1' }
-};
+import { EMOJIS, SKILL_LABELS, ROLES } from '../lib/constants';
+import PlayerIcon from './ui/PlayerIcon';
 
 function SkillCard({ player, onUpdate }) {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -332,15 +314,14 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
                                         <div className="relative w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
-                                            <div className="w-full h-full rounded-2xl overflow-hidden">
-                                                {p.icon && p.icon.startsWith('data:image') ? <img src={p.icon} alt={p.name} className="w-full h-full object-cover" /> : <span className="text-3xl">{p.icon || '🏐'}</span>}
-                                            </div>
-                                            {/* Role Badge */}
-                                            {p.role && p.role !== 'none' && ROLES[p.role] && (
-                                                <div className="absolute -top-1 -right-1 w-6 h-6 bg-emerald-500 rounded-lg flex items-center justify-center shadow-lg border border-black/20 z-10">
-                                                    {React.createElement(ROLES[p.role].icon, { className: "w-3.5 h-3.5 text-white" })}
-                                                </div>
-                                            )}
+                                            <PlayerIcon 
+                                                icon={p.icon} 
+                                                name={p.name} 
+                                                role={p.role} 
+                                                isHot={p.isHot} 
+                                                isGoat={p.isGoat} 
+                                                className="w-full h-full" 
+                                            />
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2">

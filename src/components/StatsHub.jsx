@@ -3,22 +3,7 @@ import { Trophy, GlassWater, TrendingUp, Medal, User, Activity, Zap } from 'luci
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { format, parseISO } from 'date-fns';
 
-const PlayerIcon = ({ icon, name, isHot, isGoat, className = "w-6 h-6" }) => {
-    return (
-        <div className={`relative ${className}`}>
-            {isGoat && <div className="absolute inset-0 bg-yellow-500/40 rounded-full blur-md animate-pulse" />}
-            {isHot && <div className="absolute inset-0 bg-orange-500/40 rounded-full blur-md animate-pulse" />}
-            
-            <div className={`relative z-10 w-full h-full rounded-full flex items-center justify-center overflow-hidden border ${isGoat ? 'border-yellow-500 shadow-lg shadow-yellow-500/20' : isHot ? 'border-orange-500' : 'border-white/10'}`}>
-                {icon?.startsWith('data:image') ? (
-                    <img src={icon} alt={name} className="w-full h-full object-cover" />
-                ) : (
-                    <span className="text-xl">{icon || '🏐'}</span>
-                )}
-            </div>
-        </div>
-    );
-};
+import PlayerIcon from './ui/PlayerIcon';
 
 export default function StatsHub({ players, matches }) {
     const sortedByWins = [...players].sort((a, b) => (b.wins || 0) - (a.wins || 0)).slice(0, 3);
@@ -53,8 +38,9 @@ export default function StatsHub({ players, matches }) {
                 if (!topPlayerIds.includes(p.id)) return;
                 if (playerCumulative[p.id] === undefined) playerCumulative[p.id] = 0;
 
-                const wasInWinner = m.teams?.[m.winnerTeam]?.some(wp => wp.id === p.id);
-                const wasInLoser = m.teams?.flat().some(lp => lp.id === p.id) && !wasInWinner;
+                const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams || {}).sort().map(k => m.teams[k]);
+                const wasInWinner = matchTeams[m.winnerTeam]?.some(wp => wp.id === p.id);
+                const wasInLoser = matchTeams.flat().some(lp => lp.id === p.id) && !wasInWinner;
 
                 if (wasInWinner) playerCumulative[p.id] += 1;
                 else if (wasInLoser) playerCumulative[p.id] -= 1;

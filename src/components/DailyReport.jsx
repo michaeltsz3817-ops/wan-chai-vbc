@@ -3,18 +3,7 @@ import { DollarSign, Calendar, Clock, ChevronLeft, ChevronRight, Filter, Copy, C
 import { format, startOfMonth, endOfMonth, isSameMonth, isToday, parseISO, isSameDay, subDays, addDays } from 'date-fns';
 import { zhHK } from 'date-fns/locale';
 
-const PlayerIcon = ({ icon, name, className = "w-6 h-6" }) => {
-    if (icon?.startsWith('data:image')) {
-        return (
-            <div className={`${className} rounded-full overflow-hidden border border-white/10 shadow-sm`}>
-                <img src={icon} alt={name} className="w-full h-full object-cover" />
-            </div>
-        );
-    }
-    return (
-        <span className="text-xl" role="img" aria-label={name}>{icon || '🏐'}</span>
-    );
-};
+import PlayerIcon from './ui/PlayerIcon';
 
 export default function DailyReport({ players, matches }) {
     const [viewMode, setViewMode] = useState('daily'); // 'daily' or 'monthly'
@@ -48,8 +37,10 @@ export default function DailyReport({ players, matches }) {
 
     // Total Stake = total amount losers lose (money changing hands)
     const totalStake = filteredMatches.reduce((acc, m) => {
-        if (!m.teams || m.winnerTeam === undefined || !m.teams[m.winnerTeam]) return acc;
-        return acc + m.stake * (m.teams.flat().length - m.teams[m.winnerTeam].length);
+        if (!m || !m.teams) return acc;
+        const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams).sort().map(k => m.teams[k]);
+        if (m.winnerTeam === undefined || !matchTeams[m.winnerTeam]) return acc;
+        return acc + m.stake * (matchTeams.flat().length - matchTeams[m.winnerTeam].length);
     }, 0);
 
     const playersWithDailyStats = players.map(p => {
@@ -57,9 +48,11 @@ export default function DailyReport({ players, matches }) {
         let dailyWins = 0;
         let dailyLosses = 0;
         filteredMatches.forEach(m => {
-            if (!m.teams || m.winnerTeam === undefined || !m.teams[m.winnerTeam]) return;
-            const teamsFlat = m.teams.flat();
-            const wasInWinner = m.teams[m.winnerTeam]?.some(wp => wp.id === p.id) || false;
+            if (!m || !m.teams) return;
+            const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams).sort().map(k => m.teams[k]);
+            if (m.winnerTeam === undefined || !matchTeams[m.winnerTeam]) return;
+            const teamsFlat = matchTeams.flat();
+            const wasInWinner = matchTeams[m.winnerTeam]?.some(wp => wp.id === p.id) || false;
             const wasInLoser = (teamsFlat.some(lp => lp.id === p.id) && !wasInWinner) || false;
 
             if (wasInWinner) {
@@ -71,7 +64,11 @@ export default function DailyReport({ players, matches }) {
             }
         });
 
-        const hasPlayed = filteredMatches.some(m => m.teams.flat().some(tp => tp.id === p.id));
+        const hasPlayed = filteredMatches.some(m => {
+            if (!m || !m.teams) return false;
+            const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams).sort().map(k => m.teams[k]);
+            return matchTeams.flat().some(tp => tp && tp.id === p.id);
+        });
         return hasPlayed ? { ...p, totalEarnings, dailyWins, dailyLosses } : null;
     }).filter(Boolean);
 
@@ -206,8 +203,11 @@ export default function DailyReport({ players, matches }) {
                                             {p.dailyWins}勝 {p.dailyLosses}負
                                         </p>
                                         <span className="text-gray-800 text-[8px]">•</span>
-                                        <p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">
-                                            {filteredMatches.filter(m => m.teams.flat().some(tp => tp.id === p.id)).length} games
+                                         <p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">
+                                            {filteredMatches.filter(m => {
+                                                const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams || {}).sort().map(k => m.teams[k]);
+                                                return matchTeams.flat().some(tp => tp && tp.id === p.id);
+                                            }).length} games
                                         </p>
                                     </div>
                                 </div>

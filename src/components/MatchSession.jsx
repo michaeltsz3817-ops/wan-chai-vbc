@@ -1,47 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Coffee, Check, X, AlertCircle, RefreshCw, Trophy, Users, ArrowRight, Minus, Plus, Zap, Shield, Target, Hand, Layers, UserCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const ROLES = {
-    none: { label: '自由人', icon: UserCircle },
-    cannon: { label: '大炮 (Cannon)', icon: Zap },
-    wall: { label: '長城 (Wall)', icon: Layers },
-    maestro: { label: '指揮官 (Maestro)', icon: Hand },
-    guardian: { label: '守護者 (Guardian)', icon: Shield },
-    server: { label: '發球機器 (Server)', icon: Target }
-};
-
-const PlayerIcon = ({ icon, name, role, isHot, isGoat, isCold, className = "w-6 h-6" }) => {
-    return (
-        <div className={`relative ${className}`}>
-            {isGoat && <div className="absolute inset-0 bg-yellow-500/40 rounded-full blur-md animate-pulse" />}
-            {isHot && <div className="absolute inset-0 bg-orange-500/40 rounded-full blur-md animate-pulse" />}
-            
-            <div className={`relative z-10 w-full h-full rounded-full flex items-center justify-center overflow-hidden border ${isGoat ? 'border-yellow-500 shadow-lg shadow-yellow-500/20' : isHot ? 'border-orange-500' : 'border-white/10'}`}>
-                {icon?.startsWith('data:image') ? (
-                    <img src={icon} alt={name} className="w-full h-full object-cover" />
-                ) : (
-                    <span className="text-sm">{icon || '🏐'}</span>
-                )}
-            </div>
-            {/* Role Badge */}
-            {role && role !== 'none' && ROLES[role] && (
-                <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-md flex items-center justify-center shadow-lg border border-black/20 z-20">
-                    {React.createElement(ROLES[role].icon, { className: "w-2 h-2 text-white" })}
-                </div>
-            )}
-        </div>
-    );
-};
+import { ROLES } from '../lib/constants';
+import PlayerIcon from './ui/PlayerIcon';
 
 export default function MatchSession({
     activeTeams,
+    restingPlayers = [],
     onComplete,
     onResetTeams,
     gameStep,
     setGameStep,
     g1WinnerIdx,
-    setG1WinnerIdx
+    setG1WinnerIdx,
+    onManualEntry
 }) {
     const [stake, setStake] = useState(10);
     const [winnerIndex, setWinnerIndex] = useState(null);
@@ -108,6 +80,11 @@ export default function MatchSession({
         const absoluteWinnerIdx = winnerIndex; // 0, 1, or 2
         const relativeWinnerIdx = playingTeams.findIndex(t => t === winners);
 
+        const teamsObj = {};
+        playingTeams.forEach((t, idx) => {
+            teamsObj[idx] = t;
+        });
+
         // Record the actual match result
         onComplete({
             id: Date.now().toString(),
@@ -116,7 +93,7 @@ export default function MatchSession({
             scores: [score1, score2],
             winnerTeam: relativeWinnerIdx, // Relative to playingTeams (0 or 1)
             absoluteWinnerIdx, // Absolute to activeTeams (0, 1, or 2)
-            teams: playingTeams, // Only record those who played in this match
+            teams: teamsObj, // Use object to avoid nested arrays in Firebase
             payout: winPerPerson,
             roundName: isThreeTeam ? `Round ${gameStep + 1}` : 'Friendly',
             isRotationMatch: isThreeTeam,
@@ -198,8 +175,16 @@ export default function MatchSession({
                 </div>
                 <div className="flex gap-2">
                     <button
+                        onClick={onManualEntry}
+                        className="p-3 bg-white/5 text-gray-400 rounded-2xl hover:bg-white/10 hover:text-white transition-all active:scale-95 flex items-center gap-2 group border border-white/5"
+                        title="手動補後場次"
+                    >
+                        <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" />
+                        <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">接分手動</span>
+                    </button>
+                    <button
                         onClick={onResetTeams}
-                        className="p-3 bg-red-400/10 text-red-400 rounded-2xl hover:bg-red-400 hover:text-white transition-all active:scale-95 flex items-center gap-2 group"
+                        className="p-3 bg-red-400/10 text-red-400 rounded-2xl hover:bg-red-400 hover:text-white transition-all active:scale-95 flex items-center gap-2 group border border-red-400/20"
                         title="解散隊伍"
                     >
                         <RefreshCw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
@@ -219,6 +204,25 @@ export default function MatchSession({
                                 'TEAM 3 vs 第一場贏家'}
                     </h4>
                     <p className="text-[8px] text-gray-600 font-bold uppercase tracking-[0.2em] mt-1 italic">TEAM {activeTeams.findIndex((_, i) => !currentMatchSubindices.includes(i)) + 1} 休息中</p>
+                </div>
+            )}
+
+            {!isThreeTeam && restingPlayers && restingPlayers.length > 0 && (
+                <div className="p-4 glass rounded-[32px] bg-white/1 border border-white/5 text-center">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                        <Users className="w-3 h-3 text-gray-500" />
+                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                            休息中 (RESTING)
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-2">
+                        {restingPlayers.map(p => (
+                            <div key={p.id} className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg border border-white/5 opacity-50">
+                                <PlayerIcon icon={p.icon} name={p.name} role={p.role} isHot={p.isHot} isGoat={p.isGoat} className="w-4 h-4" />
+                                <span className="text-[10px] font-bold uppercase tracking-tighter">{p.name}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
 

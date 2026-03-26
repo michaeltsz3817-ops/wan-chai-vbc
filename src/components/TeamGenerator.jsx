@@ -1,42 +1,10 @@
 import React, { useState } from 'react';
 import { Users, Filter, RefreshCw, Trophy, Play, Trash2, GripVertical, Zap, Shield, Target, Hand, Layers, UserCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ROLES } from '../lib/constants';
+import PlayerIcon from './ui/PlayerIcon';
 
-const ROLES = {
-    none: { label: '自由人', icon: UserCircle },
-    cannon: { label: '大炮 (Cannon)', icon: Zap },
-    wall: { label: '長城 (Wall)', icon: Layers },
-    maestro: { label: '指揮官 (Maestro)', icon: Hand },
-    guardian: { label: '守護者 (Guardian)', icon: Shield },
-    server: { label: '發球機器 (Server)', icon: Target }
-};
-
-const PlayerIcon = ({ icon, name, role, isHot, isGoat, isCold, className = "w-6 h-6" }) => {
-    return (
-        <div className={`relative ${className}`}>
-            {isGoat && <div className="absolute inset-0 bg-yellow-500/40 rounded-full blur-md animate-pulse" />}
-            {isHot && <div className="absolute inset-0 bg-orange-500/40 rounded-full blur-md animate-pulse" />}
-            {isCold && <div className="absolute inset-0 bg-blue-500/40 rounded-full blur-md" />}
-            
-            <div className={`relative z-10 w-full h-full rounded-full flex items-center justify-center overflow-hidden border-2 ${isGoat ? 'border-yellow-500 shadow-lg shadow-yellow-500/20' : isHot ? 'border-orange-500' : 'border-white/10'}`}>
-                {icon?.startsWith('data:image') ? (
-                    <img src={icon} alt={name} className="w-full h-full object-cover" />
-                ) : (
-                    <span className="text-lg">{icon || '🏐'}</span>
-                )}
-            </div>
-            {isGoat && <div className="absolute -top-1 -right-1 z-20">👑</div>}
-            {/* Role Badge */}
-            {role && role !== 'none' && ROLES[role] && (
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-md flex items-center justify-center shadow-lg border border-black/20 z-20">
-                    {React.createElement(ROLES[role].icon, { className: "w-2.5 h-2.5 text-white" })}
-                </div>
-            )}
-        </div>
-    );
-};
-
-export default function TeamGenerator({ players, teams, setTeams, onReset, onGenerateComplete, presentPlayerIds, onResetAttendance }) {
+export default function TeamGenerator({ players, teams, restingPlayers, setTeams, onReset, onGenerateComplete, presentPlayerIds, onResetAttendance }) {
     const [numTeams, setNumTeams] = useState(2);
 
     const generateTeams = () => {
@@ -44,19 +12,18 @@ export default function TeamGenerator({ players, teams, setTeams, onReset, onGen
 
         const activePlayers = players.filter(p => presentPlayerIds.includes(p.id));
         
-        // Dynamic Skill: effective skill (base + role) + (form * weight)
-        const sorted = [...activePlayers].sort((a, b) => {
-            const skillA = a.effectiveSkill || (a.skill || 3);
-            const skillB = b.effectiveSkill || (b.skill || 3);
-            const effectiveSkillA = skillA + (a.form || 0) * 0.5;
-            const effectiveSkillB = skillB + (b.form || 0) * 0.5;
-            return effectiveSkillB - effectiveSkillA;
-        });
+        // Purely random shuffle (ignored skill balance as requested)
+        const sorted = [...activePlayers].sort(() => Math.random() - 0.5);
+
+        // 6-player cap per team
+        const limit = numTeams * 6;
+        const playingPlayers = sorted.slice(0, limit);
+        const nextResting = sorted.slice(limit);
 
         const newTeams = Array.from({ length: numTeams }, () => []);
 
         // Snake draft for balance
-        sorted.forEach((player, index) => {
+        playingPlayers.forEach((player, index) => {
             const turn = Math.floor(index / numTeams);
             const isForward = turn % 2 === 0;
             const teamIdx = isForward ? (index % numTeams) : (numTeams - 1 - (index % numTeams));
@@ -71,7 +38,6 @@ export default function TeamGenerator({ players, teams, setTeams, onReset, onGen
 
         if (teamWithEx1 !== -1 && teamWithEx1 === teamWithEx2) {
             // Both are in the same team. Swap one of them.
-            // Find a target team (not the current one)
             const targetTeamIdx = (teamWithEx1 + 1) % newTeams.length;
             const p2 = newTeams[teamWithEx1].find(p => p.id === ex2 || p.id === Number(ex2));
             
@@ -83,7 +49,7 @@ export default function TeamGenerator({ players, teams, setTeams, onReset, onGen
             }
         }
 
-        setTeams(newTeams);
+        setTeams(newTeams, nextResting);
         // Automatically switch to match page
         if (onGenerateComplete) onGenerateComplete();
     };
@@ -121,12 +87,19 @@ export default function TeamGenerator({ players, teams, setTeams, onReset, onGen
         const { player, fromTeamIdx } = draggedPlayer;
         const newTeams = [...teams];
         
+        // Enforce 6-player cap: if target team already has 6, block or swap
+        if (newTeams[toTeamIdx].length >= 6) {
+            alert('隊伍人數已滿 (上限 6 人)！請先將人移出或進行交換。');
+            setDraggedPlayer(null);
+            return;
+        }
+
         // Remove from source team
         newTeams[fromTeamIdx] = newTeams[fromTeamIdx].filter(p => p.id !== player.id);
         // Add to target team
         newTeams[toTeamIdx] = [...newTeams[toTeamIdx], player];
         
-        setTeams(newTeams);
+        setTeams(newTeams, restingPlayers);
         setDraggedPlayer(null);
     };
 
@@ -134,12 +107,35 @@ export default function TeamGenerator({ players, teams, setTeams, onReset, onGen
         const newTeams = [...teams];
         const nextTeamIdx = (fromTeamIdx + 1) % teams.length;
         
+        if (newTeams[nextTeamIdx].length >= 6) {
+            alert('下一隊人數已滿 (上限 6 人)！');
+            return;
+        }
+
         // Remove from source team
         newTeams[fromTeamIdx] = newTeams[fromTeamIdx].filter(p => p.id !== player.id);
         // Add to target team
         newTeams[nextTeamIdx] = [...newTeams[nextTeamIdx], player];
         
-        setTeams(newTeams);
+        setTeams(newTeams, restingPlayers);
+    };
+
+    const handleRest = (player, fromTeamIdx) => {
+        const newTeams = [...teams];
+        newTeams[fromTeamIdx] = newTeams[fromTeamIdx].filter(p => p.id !== player.id);
+        const newResting = [...restingPlayers, player];
+        setTeams(newTeams, newResting);
+    };
+
+    const handleJoin = (player, toTeamIdx) => {
+        if (teams[toTeamIdx].length >= 6) {
+            alert('該隊伍人數已滿 (上限 6 人)！');
+            return;
+        }
+        const newResting = restingPlayers.filter(p => p.id !== player.id);
+        const newTeams = [...teams];
+        newTeams[toTeamIdx] = [...newTeams[toTeamIdx], player];
+        setTeams(newTeams, newResting);
     };
 
     return (
@@ -189,7 +185,7 @@ export default function TeamGenerator({ players, teams, setTeams, onReset, onGen
                     disabled={!presentPlayerIds || presentPlayerIds.length < (numTeams * 2)}
                     className="flex-1 py-5 bg-emerald-500 rounded-[32px] font-black italic text-xl tracking-tighter uppercase shadow-2xl shadow-emerald-500/30 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale"
                 >
-                    {teams.length > 0 ? '重新平衡分隊' : '自動平衡分隊'}
+                    {teams.length > 0 ? '重新隨機分隊' : '自動隨機分隊'}
                 </button>
                 {teams.length > 0 && (
                     <button
@@ -257,10 +253,19 @@ export default function TeamGenerator({ players, teams, setTeams, onReset, onGen
                                                     )}
                                                 </div>
                                             </div>
-                                            <div className="flex gap-0.5 opacity-50 group-hover/item:opacity-100 transition-opacity">
-                                                {[1, 2, 3, 4, 5].map(s => (
-                                                    <div key={s} className={`w-1 h-1 rounded-full ${s <= (p.skill || 3) ? 'bg-emerald-400' : 'bg-white/10'}`} />
-                                                ))}
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex gap-0.5 opacity-50 group-hover/item:opacity-100 transition-opacity">
+                                                    {[1, 2, 3, 4, 5].map(s => (
+                                                        <div key={s} className={`w-1 h-1 rounded-full ${s <= (p.skill || 3) ? 'bg-emerald-400' : 'bg-white/10'}`} />
+                                                    ))}
+                                                </div>
+                                                <button 
+                                                    onClick={() => handleRest(p, idx)}
+                                                    className="w-8 h-8 flex items-center justify-center bg-red-500/10 text-red-400 rounded-lg border border-red-500/20 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover/item:opacity-100"
+                                                    title="移動到休息區"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
                                         </motion.div>
                                     ))}
@@ -272,6 +277,49 @@ export default function TeamGenerator({ players, teams, setTeams, onReset, onGen
                                 </div>
                             </motion.div>
                         ))}
+
+                        {/* Resting Players Section */}
+                        {restingPlayers && restingPlayers.length > 0 && (
+                            <motion.div
+                                layout
+                                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                className="p-6 glass rounded-[32px] border border-white/5 bg-white/1 overflow-hidden"
+                            >
+                                <div className="flex items-center justify-between mb-4">
+                                    <h4 className="text-xl font-black italic tracking-tighter uppercase text-gray-500">休息中 (RESTING)</h4>
+                                    <div className="flex items-center gap-1 text-[10px] font-black text-gray-500 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full">
+                                        <Users className="w-3 h-3" /> {restingPlayers.length} 人
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {restingPlayers.map(p => (
+                                        <div key={p.id} className="group/resting relative bg-white/5 border border-white/5 rounded-2xl p-2 pr-4 flex items-center gap-3 hover:bg-white/10 transition-all">
+                                            <PlayerIcon icon={p.icon} name={p.name} role={p.role} isHot={p.isHot} isGoat={p.isGoat} className="w-6 h-6" />
+                                            <span className="text-xs font-bold whitespace-nowrap">{p.name}</span>
+                                            
+                                            {/* Action Menu for joining a team */}
+                                            <div className="flex gap-1 ml-2 opacity-0 group-hover/resting:opacity-100 transition-all">
+                                                {teams.map((_, tIdx) => (
+                                                    <button
+                                                        key={tIdx}
+                                                        onClick={() => handleJoin(p, tIdx)}
+                                                        className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black border transition-all ${
+                                                            tIdx === 0 ? 'bg-blue-500/20 border-blue-500/40 text-blue-400 hover:bg-blue-500' :
+                                                            tIdx === 1 ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500' :
+                                                            'bg-purple-500/20 border-purple-500/40 text-purple-400 hover:bg-purple-500'
+                                                        } hover:text-white`}
+                                                        title={`加入隊伍 ${tIdx + 1}`}
+                                                    >
+                                                        {tIdx + 1}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
                     </AnimatePresence>
                 </div>
             )}
