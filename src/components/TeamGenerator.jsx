@@ -97,6 +97,20 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
             return;
         }
 
+        // 🚨 Hidden Exclusion Rule Check
+        const ex1 = '13868';
+        const ex2 = '17890';
+        const isEx1 = String(player.id) === ex1;
+        const isEx2 = String(player.id) === ex2;
+        if (isEx1 || isEx2) {
+            const other = isEx1 ? ex2 : ex1;
+            if (newTeams[toTeamIdx].some(p => String(p.id) === other)) {
+                alert('🚨 隱藏規則：這兩位球員不能在同一隊！');
+                setDraggedPlayer(null);
+                return;
+            }
+        }
+
         // Remove from source team
         newTeams[fromTeamIdx] = newTeams[fromTeamIdx].filter(p => p.id !== player.id);
         // Add to target team
@@ -113,6 +127,19 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
         if (newTeams[nextTeamIdx].length >= 6) {
             alert('下一隊人數已滿 (上限 6 人)！');
             return;
+        }
+
+        // 🚨 Hidden Exclusion Rule Check
+        const ex1 = '13868';
+        const ex2 = '17890';
+        const isEx1 = String(player.id) === ex1;
+        const isEx2 = String(player.id) === ex2;
+        if (isEx1 || isEx2) {
+            const other = isEx1 ? ex2 : ex1;
+            if (newTeams[nextTeamIdx].some(p => String(p.id) === other)) {
+                alert('🚨 隱藏規則：這兩位球員不能在同一隊！');
+                return;
+            }
         }
 
         // Remove from source team
@@ -137,6 +164,20 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
         }
         const newResting = restingPlayers.filter(p => p.id !== player.id);
         const newTeams = [...teams];
+        
+        // 🚨 Hidden Exclusion Rule Check
+        const ex1 = '13868';
+        const ex2 = '17890';
+        const isEx1 = String(player.id) === ex1;
+        const isEx2 = String(player.id) === ex2;
+        if (isEx1 || isEx2) {
+            const other = isEx1 ? ex2 : ex1;
+            if (newTeams[toTeamIdx].some(p => String(p.id) === other)) {
+                alert('🚨 隱藏規則：這兩位球員不能在同一隊！');
+                return;
+            }
+        }
+
         newTeams[toTeamIdx] = [...newTeams[toTeamIdx], player];
         setTeams(newTeams, newResting);
     };
