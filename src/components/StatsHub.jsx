@@ -1,11 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Trophy, GlassWater, TrendingUp, Medal, Activity, Zap, Award, ChevronDown } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { AreaChart, Area } from 'recharts';
+import { Trophy, GlassWater, TrendingUp, Medal, Activity, Zap, Award, ChevronRight } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ACHIEVEMENTS } from '../lib/constants';
-
 import PlayerIcon from './ui/PlayerIcon';
 
 const SORT_MODES = [
@@ -16,9 +14,17 @@ const SORT_MODES = [
 ];
 
 const CHART_MODES = [
-    { key: 'drinks', label: '飲數趨勢' },
-    { key: 'winRate', label: '勝率趨勢' },
+    { key: 'drinks', label: '飲數' },
+    { key: 'winRate', label: '勝率%' },
 ];
+
+const RANK_STYLES = [
+    { bg: '#F59E0B', text: '#000' },
+    { bg: '#9CA3AF', text: '#000' },
+    { bg: '#B45309', text: '#fff' },
+];
+
+const chartColors = ['#FF4500', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981'];
 
 export default function StatsHub({ players, matches, onSelectPlayer }) {
     const [sortMode, setSortMode] = useState('wins');
@@ -29,9 +35,9 @@ export default function StatsHub({ players, matches, onSelectPlayer }) {
         return [...players].sort((a, b) => {
             if (sortMode === 'wins') return (b.wins || 0) - (a.wins || 0);
             if (sortMode === 'winRate') {
-                const rateA = a.totalMatches > 0 ? a.wins / a.totalMatches : 0;
-                const rateB = b.totalMatches > 0 ? b.wins / b.totalMatches : 0;
-                return rateB - rateA;
+                const rA = a.totalMatches > 0 ? a.wins / a.totalMatches : 0;
+                const rB = b.totalMatches > 0 ? b.wins / b.totalMatches : 0;
+                return rB - rA;
             }
             if (sortMode === 'bestStreak') return (b.bestStreak || 0) - (a.bestStreak || 0);
             if (sortMode === 'drinks') return (b.drinks || 0) - (a.drinks || 0);
@@ -41,243 +47,199 @@ export default function StatsHub({ players, matches, onSelectPlayer }) {
 
     const top3ByWins = [...players].sort((a, b) => (b.wins || 0) - (a.wins || 0)).slice(0, 3);
     const top3ByDrinks = [...players].sort((a, b) => (b.drinks || 0) - (a.drinks || 0)).slice(0, 3);
+    const top5Players = [...players].sort((a, b) => Math.abs(b.drinks || 0) - Math.abs(a.drinks || 0)).slice(0, 5);
 
     const chartData = useMemo(() => {
-        if (matches.length === 0) return [];
-        const sortedMatches = [...matches].sort((a, b) => new Date(a.date) - new Date(b.date));
-        const topPlayerIds = [...players]
-            .sort((a, b) => Math.abs(b.drinks || 0) - Math.abs(a.drinks || 0))
-            .slice(0, 5).map(p => p.id);
-
-        const data = [];
-        const playerCumDrinks = {};
-        const playerCumWins = {};
-        const playerCumMatches = {};
-
-        sortedMatches.forEach((m) => {
-            if (!m.date) return;
+        if (matches.length < 2) return [];
+        const sorted = [...matches].sort((a, b) => new Date(a.date) - new Date(b.date));
+        const topIds = top5Players.map(p => p.id);
+        const cumDrinks = {}, cumWins = {}, cumMatches = {};
+        return sorted.map(m => {
+            if (!m.date) return null;
             let dateStr;
             try { dateStr = format(parseISO(m.date), 'MM/dd'); } catch { dateStr = '?'; }
             const entry = { name: dateStr };
             const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams || {}).sort().map(k => m.teams[k]);
-
             players.forEach(p => {
-                if (!topPlayerIds.includes(p.id)) return;
-                if (playerCumDrinks[p.id] === undefined) { playerCumDrinks[p.id] = 0; playerCumWins[p.id] = 0; playerCumMatches[p.id] = 0; }
-
+                if (!topIds.includes(p.id)) return;
+                if (cumDrinks[p.id] === undefined) { cumDrinks[p.id] = 0; cumWins[p.id] = 0; cumMatches[p.id] = 0; }
                 const wasInWinner = matchTeams[m.winnerTeam]?.some(wp => wp.id === p.id);
                 const wasInLoser = matchTeams.flat().some(lp => lp.id === p.id) && !wasInWinner;
-
-                if (wasInWinner) { playerCumDrinks[p.id] += 1; playerCumWins[p.id]++; playerCumMatches[p.id]++; }
-                else if (wasInLoser) { playerCumDrinks[p.id] -= 1; playerCumMatches[p.id]++; }
-
-                entry[`${p.name}_drinks`] = playerCumDrinks[p.id];
-                entry[`${p.name}_winRate`] = playerCumMatches[p.id] > 0
-                    ? Math.round((playerCumWins[p.id] / playerCumMatches[p.id]) * 100)
-                    : 0;
+                if (wasInWinner) { cumDrinks[p.id]++; cumWins[p.id]++; cumMatches[p.id]++; }
+                else if (wasInLoser) { cumDrinks[p.id]--; cumMatches[p.id]++; }
+                entry[`${p.name}_drinks`] = cumDrinks[p.id];
+                entry[`${p.name}_winRate`] = cumMatches[p.id] > 0 ? Math.round((cumWins[p.id] / cumMatches[p.id]) * 100) : 0;
             });
-            data.push(entry);
-        });
-        return data;
+            return entry;
+        }).filter(Boolean);
     }, [matches, players]);
 
-    const chartColors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
-    const top5Players = [...players].sort((a, b) => Math.abs(b.drinks || 0) - Math.abs(a.drinks || 0)).slice(0, 5);
-
     return (
-        <div className="space-y-6 pb-24 text-white">
-            {/* Top Performers Summary */}
-            <section className="grid grid-cols-2 gap-4">
-                <div className="p-4 glass rounded-3xl bg-emerald-500/10 border border-emerald-500/20">
-                    <div className="flex items-center gap-2 mb-2 text-emerald-400">
-                        <Trophy className="w-4 h-4" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">勝場王</span>
-                    </div>
-                    {top3ByWins[0] ? (
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <PlayerIcon icon={top3ByWins[0].icon} name={top3ByWins[0].name} className="w-8 h-8" />
-                                <p className="text-xl font-black truncate">{top3ByWins[0].name}</p>
+        <div className="space-y-6 pb-28 text-white">
+
+            {/* Hero Top Performers */}
+            <section className="grid grid-cols-2 gap-3">
+                {[
+                    { title: '勝場王', icon: Trophy, player: top3ByWins[0], stat: `${top3ByWins[0]?.wins || 0} WINS`, color: '#FF4500' },
+                    { title: '飲數王', icon: GlassWater, player: top3ByDrinks[0], stat: `+${top3ByDrinks[0]?.drinks || 0} 飲`, color: '#3b82f6' },
+                ].map(({ title, icon: Icon, player, stat, color }) => (
+                    <div key={title} className="rounded-2xl overflow-hidden" style={{ background: '#111', border: '1px solid #222' }}>
+                        <div className="h-1 w-full" style={{ background: color }} />
+                        <div className="p-4">
+                            <div className="flex items-center gap-1.5 mb-3">
+                                <Icon className="w-3 h-3" style={{ color }} />
+                                <span className="text-[8px] font-black uppercase tracking-widest" style={{ color }}>{title}</span>
                             </div>
-                            <p className="text-[10px] text-gray-500">{top3ByWins[0].wins || 0} 場勝仗</p>
+                            {player ? (
+                                <>
+                                    <div className="flex items-center gap-2">
+                                        <PlayerIcon icon={player.icon} name={player.name} className="w-9 h-9" />
+                                        <p className="text-base font-black uppercase tracking-tight truncate">{player.name}</p>
+                                    </div>
+                                    <p className="text-[9px] font-bold mt-1" style={{ color: '#555' }}>{stat}</p>
+                                </>
+                            ) : <p className="text-xs text-[#333] italic">暫無數據</p>}
                         </div>
-                    ) : <p className="text-sm text-gray-600">暫無數據</p>}
-                </div>
-                <div className="p-4 glass rounded-3xl bg-blue-500/10 border border-blue-500/20">
-                    <div className="flex items-center gap-2 mb-2 text-blue-400">
-                        <GlassWater className="w-4 h-4" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">飲數王</span>
                     </div>
-                    {top3ByDrinks[0] ? (
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <PlayerIcon icon={top3ByDrinks[0].icon} name={top3ByDrinks[0].name} className="w-8 h-8" />
-                                <p className="text-xl font-black truncate">{top3ByDrinks[0].name}</p>
-                            </div>
-                            <p className="text-[10px] text-gray-500">{top3ByDrinks[0].drinks || 0} 飲</p>
-                        </div>
-                    ) : <p className="text-sm text-gray-600">暫無數據</p>}
-                </div>
+                ))}
             </section>
 
-            {/* Performance Trend Chart */}
-            <section className="space-y-4">
-                <div className="flex items-center justify-between ml-1">
-                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                        <Activity className="w-4 h-4" /> 表現趨勢
+            {/* Trend Chart */}
+            <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2" style={{ color: '#555' }}>
+                        <Activity className="w-3.5 h-3.5" style={{ color: '#FF4500' }} /> 表現趨勢
                     </h3>
-                    <div className="flex bg-white/5 p-0.5 rounded-xl border border-white/10">
+                    <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #222' }}>
                         {CHART_MODES.map(m => (
-                            <button
-                                key={m.key}
-                                onClick={() => setChartMode(m.key)}
-                                className={`px-3 py-1.5 rounded-lg text-[9px] font-black transition-all ${chartMode === m.key ? 'bg-emerald-500 text-white' : 'text-gray-500'}`}
-                            >{m.label}</button>
+                            <button key={m.key} onClick={() => setChartMode(m.key)}
+                                className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all"
+                                style={chartMode === m.key ? { background: '#FF4500', color: '#fff' } : { background: '#111', color: '#555' }}>
+                                {m.label}
+                            </button>
                         ))}
                     </div>
                 </div>
-                <div className="p-4 glass rounded-[32px] border border-white/5 h-[260px]">
+                <div className="rounded-2xl p-4" style={{ background: '#111', border: '1px solid #222', height: 220 }}>
                     {chartData.length > 1 ? (
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={chartData}>
                                 <defs>
-                                    {top5Players.map((p, idx) => (
-                                        <linearGradient key={p.id} id={`grad${idx}`} x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor={chartColors[idx]} stopOpacity={0.2} />
-                                            <stop offset="95%" stopColor={chartColors[idx]} stopOpacity={0} />
+                                    {top5Players.map((p, i) => (
+                                        <linearGradient key={p.id} id={`cg${i}`} x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor={chartColors[i]} stopOpacity={0.25} />
+                                            <stop offset="95%" stopColor={chartColors[i]} stopOpacity={0} />
                                         </linearGradient>
                                     ))}
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" vertical={false} />
-                                <XAxis dataKey="name" stroke="#444" fontSize={8} tickLine={false} axisLine={false} />
-                                <YAxis stroke="#444" fontSize={8} tickLine={false} axisLine={false}
-                                    tickFormatter={(v) => chartMode === 'winRate' ? `${v}%` : (v > 0 ? `+${v}` : v)} />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '12px', fontSize: '10px', fontWeight: 'bold' }}
-                                    formatter={(v) => chartMode === 'winRate' ? `${v}%` : v}
-                                />
-                                <Legend verticalAlign="top" align="right" iconType="circle"
-                                    wrapperStyle={{ fontSize: '8px', fontWeight: 'bold', paddingBottom: '10px' }} />
-                                {top5Players.map((p, idx) => {
-                                    const key = `${p.name}_${chartMode}`;
-                                    const isHL = highlightedPlayer === null || highlightedPlayer === p.id;
+                                <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" vertical={false} />
+                                <XAxis dataKey="name" stroke="#333" fontSize={8} tickLine={false} axisLine={false} />
+                                <YAxis stroke="#333" fontSize={8} tickLine={false} axisLine={false}
+                                    tickFormatter={v => chartMode === 'winRate' ? `${v}%` : (v > 0 ? `+${v}` : v)} />
+                                <Tooltip contentStyle={{ background: '#111', border: '1px solid #222', borderRadius: 12, fontSize: 10, fontWeight: 700 }}
+                                    formatter={v => chartMode === 'winRate' ? `${v}%` : v} />
+                                {top5Players.map((p, i) => {
+                                    const isHL = !highlightedPlayer || highlightedPlayer === p.id;
                                     return (
-                                        <Area
-                                            key={p.id}
-                                            type="monotone"
-                                            dataKey={key}
-                                            name={p.name}
-                                            stroke={chartColors[idx % chartColors.length]}
-                                            fill={`url(#grad${idx})`}
-                                            strokeWidth={isHL ? 2.5 : 0.5}
-                                            strokeOpacity={isHL ? 1 : 0.2}
-                                            dot={false}
-                                            activeDot={{ r: 4 }}
-                                            animationDuration={1000}
-                                        />
+                                        <Area key={p.id} type="monotone"
+                                            dataKey={`${p.name}_${chartMode}`} name={p.name}
+                                            stroke={chartColors[i]} fill={`url(#cg${i})`}
+                                            strokeWidth={isHL ? 2 : 0.5} strokeOpacity={isHL ? 1 : 0.15}
+                                            dot={false} activeDot={{ r: 3 }} />
                                     );
                                 })}
                             </AreaChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-gray-600 italic text-sm gap-2">
-                            <TrendingUp className="w-8 h-8 opacity-20" />
-                            數據不足以生成圖表
+                        <div className="flex flex-col items-center justify-center h-full gap-2" style={{ color: '#333' }}>
+                            <TrendingUp className="w-8 h-8 opacity-30" />
+                            <span className="text-xs font-bold">數據不足</span>
                         </div>
                     )}
                 </div>
-                {/* Player filter buttons */}
-                {players.length > 0 && (
-                    <div className="flex flex-wrap gap-2 justify-center">
-                        {top5Players.map((p, idx) => (
-                            <button
-                                key={p.id}
-                                onClick={() => setHighlightedPlayer(highlightedPlayer === p.id ? null : p.id)}
-                                className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${highlightedPlayer === p.id ? 'text-black' : 'bg-white/5 text-gray-400 border-white/10'}`}
-                                style={highlightedPlayer === p.id ? { backgroundColor: chartColors[idx], borderColor: chartColors[idx] } : {}}
-                            >{p.name}</button>
+                {top5Players.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                        {top5Players.map((p, i) => (
+                            <button key={p.id} onClick={() => setHighlightedPlayer(highlightedPlayer === p.id ? null : p.id)}
+                                className="px-2.5 py-1 rounded-full text-[8px] font-black uppercase transition-all"
+                                style={highlightedPlayer === p.id
+                                    ? { background: chartColors[i], color: '#fff' }
+                                    : { background: '#111', border: '1px solid #222', color: '#555' }}>
+                                {p.name}
+                            </button>
                         ))}
                     </div>
                 )}
             </section>
 
-            {/* Leaderboard Table */}
-            <section className="space-y-4">
-                <div className="flex items-center justify-between ml-1">
-                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                        <Medal className="w-4 h-4" /> 龍虎榜
+            {/* Leaderboard */}
+            <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <h3 className="font-display text-2xl" style={{ fontFamily: "'Bebas Neue', sans-serif", color: '#fff', letterSpacing: '0.05em' }}>
+                        LEADERBOARD
                     </h3>
-                    {/* Sort tabs */}
-                    <div className="flex bg-white/5 p-0.5 rounded-xl border border-white/10">
+                    <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #222' }}>
                         {SORT_MODES.map(m => (
-                            <button
-                                key={m.key}
-                                onClick={() => setSortMode(m.key)}
-                                className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black transition-all ${sortMode === m.key ? 'bg-emerald-500 text-white' : 'text-gray-500'}`}
-                            >{m.label}</button>
+                            <button key={m.key} onClick={() => setSortMode(m.key)}
+                                className="px-2.5 py-1.5 text-[8px] font-black uppercase tracking-widest transition-all"
+                                style={sortMode === m.key ? { background: '#FF4500', color: '#fff' } : { background: '#111', color: '#555' }}>
+                                {m.label}
+                            </button>
                         ))}
                     </div>
                 </div>
 
-                <div className="glass rounded-[32px] overflow-hidden border border-white/5">
+                <div className="rounded-2xl overflow-hidden" style={{ background: '#111', border: '1px solid #222' }}>
                     <AnimatePresence mode="popLayout">
                         {sortedPlayers.map((p, idx) => {
                             const winRate = p.totalMatches > 0 ? Math.round((p.wins / p.totalMatches) * 100) : 0;
                             const earnedCount = ACHIEVEMENTS.filter(a => a.check(p)).length;
+                            const rankStyle = RANK_STYLES[idx] || null;
                             return (
-                                <motion.div
-                                    layout
-                                    key={p.id}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0 }}
+                                <motion.div layout key={p.id}
+                                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                     transition={{ delay: idx * 0.03 }}
                                     onClick={() => onSelectPlayer?.(p)}
-                                    className="flex items-center gap-3 px-5 py-4 border-b border-white/5 last:border-0 hover:bg-white/5 active:bg-white/10 transition-colors cursor-pointer group"
-                                >
-                                    {/* Rank Badge */}
-                                    <span className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full text-[11px] font-black ${
-                                        idx === 0 ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/30' :
-                                        idx === 1 ? 'bg-gray-300 text-black' :
-                                        idx === 2 ? 'bg-orange-600 text-white' : 'bg-white/10 text-gray-500'
-                                    }`}>{idx + 1}</span>
+                                    className="flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-colors active:opacity-70"
+                                    style={{ borderBottom: '1px solid #1a1a1a' }}>
 
-                                    {/* Avatar */}
-                                    <PlayerIcon icon={p.icon} name={p.name} isHot={p.isHot} isGoat={p.isGoat} className="w-9 h-9 flex-shrink-0" />
+                                    {/* Rank */}
+                                    <span className="text-[11px] font-black w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                                        style={rankStyle ? { background: rankStyle.bg, color: rankStyle.text } : { background: '#1a1a1a', color: '#555' }}>
+                                        {idx + 1}
+                                    </span>
 
-                                    {/* Name + Badges */}
+                                    <PlayerIcon icon={p.icon} name={p.name} isHot={p.isHot} isGoat={p.isGoat} className="w-10 h-10 flex-shrink-0" />
+
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                        <div className="flex items-center gap-1.5 mb-1">
                                             <span className="font-black text-sm tracking-tight">{p.name}</span>
-                                            {idx === 0 && <span className="bg-yellow-500/20 text-yellow-500 text-[7px] px-1.5 py-0.5 rounded-full font-black border border-yellow-500/30 flex items-center gap-0.5"><Trophy className="w-2 h-2"/>MVP</span>}
-                                            {p.isHot && <span className="bg-orange-500/20 text-orange-400 text-[7px] px-1.5 py-0.5 rounded-full font-black border border-orange-500/30"><Zap className="w-2 h-2 inline"/>HOT</span>}
-                                            {earnedCount > 0 && <span className="bg-purple-500/20 text-purple-400 text-[7px] px-1.5 py-0.5 rounded-full font-black border border-purple-500/30"><Award className="w-2 h-2 inline"/> {earnedCount}</span>}
+                                            {idx === 0 && <span className="text-[7px] font-black px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,69,0,0.15)', color: '#FF4500', border: '1px solid rgba(255,69,0,0.3)' }}>MVP</span>}
+                                            {p.isHot && <span className="text-[7px] font-black px-1.5 py-0.5 rounded" style={{ background: 'rgba(251,146,60,0.15)', color: '#fb923c', border: '1px solid rgba(251,146,60,0.3)' }}>🔥HOT</span>}
+                                            {earnedCount > 0 && <span className="text-[7px] font-black px-1.5 py-0.5 rounded" style={{ background: '#1a1a1a', color: '#666' }}>🏅{earnedCount}</span>}
                                         </div>
-                                        {/* Win Rate Bar */}
-                                        <div className="mt-1.5 h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                                        {/* Win rate bar */}
+                                        <div className="h-[3px] w-full rounded-full" style={{ background: '#1a1a1a' }}>
                                             <motion.div
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${winRate}%` }}
-                                                transition={{ duration: 0.8, delay: idx * 0.05 }}
-                                                className="h-full bg-emerald-500 rounded-full"
-                                            />
+                                                initial={{ width: 0 }} animate={{ width: `${winRate}%` }}
+                                                transition={{ duration: 0.8, delay: idx * 0.04 }}
+                                                className="h-full rounded-full"
+                                                style={{ background: idx === 0 ? '#FF4500' : '#333' }} />
                                         </div>
-                                        <p className="text-[8px] text-gray-600 mt-0.5">{winRate}% 勝率 · {p.totalMatches || 0} 場</p>
+                                        <p className="text-[8px] mt-0.5" style={{ color: '#444' }}>{winRate}% 勝率 · {p.totalMatches || 0} 場</p>
                                     </div>
 
-                                    {/* Stats */}
                                     <div className="text-right flex-shrink-0">
-                                        <p className="text-emerald-400 font-black text-base">{p.wins || 0}</p>
-                                        <p className="text-[8px] text-gray-600 uppercase">勝場</p>
+                                        <p className="font-black text-lg" style={{ color: '#FF4500' }}>{p.wins || 0}</p>
+                                        <p className="text-[8px]" style={{ color: '#444' }}>勝</p>
                                     </div>
+                                    <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: '#333' }} />
                                 </motion.div>
                             );
                         })}
                     </AnimatePresence>
                     {players.length === 0 && (
-                        <div className="p-16 text-center text-gray-500 italic text-sm">
-                            尚無球員資料，快啲去成員頁面加入啦！
-                        </div>
+                        <div className="py-16 text-center text-[#333] italic text-sm">暫無球員資料</div>
                     )}
                 </div>
             </section>

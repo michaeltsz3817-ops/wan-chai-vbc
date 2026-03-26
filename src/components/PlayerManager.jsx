@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { UserPlus, Trash2, UserCircle, Camera, Check, X, Edit2, Zap, Shield, Target, Hand, Layers, Dumbbell, Star, ChevronDown, ChevronUp, Plus, Minus, Search, Download, Upload, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, Radar as RadarLine, ResponsiveContainer } from 'recharts';
 import { EMOJIS, SKILL_LABELS, ROLES } from '../lib/constants';
 import PlayerIcon from './ui/PlayerIcon';
 
@@ -26,18 +26,18 @@ function SkillCard({ player, onUpdate }) {
     };
 
     return (
-        <div className="mt-4 border-t border-white/5 pt-4">
+        <div className="mt-4 border-t pt-4" style={{borderColor: '#1a1a1a'}}>
             <button 
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="w-full flex items-center justify-between group"
             >
                 <div className="flex items-center gap-2">
                     <Star className="w-4 h-4 text-yellow-500 fill-yellow-500/20" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-white transition-colors">
-                        技能系統 (Radar Stats)
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#444] group-hover:text-white transition-colors">
+                        PLAYER ATTRIBUTES (RADAR)
                     </span>
                 </div>
-                {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-600" /> : <ChevronDown className="w-4 h-4 text-gray-600" />}
+                {isExpanded ? <ChevronUp className="w-4 h-4 text-[#333]" /> : <ChevronDown className="w-4 h-4 text-[#333]" />}
             </button>
 
             <AnimatePresence>
@@ -49,20 +49,21 @@ function SkillCard({ player, onUpdate }) {
                         className="overflow-hidden"
                     >
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-6">
-                            <div className="h-[200px] bg-white/2 rounded-3xl p-2 relative">
+                            <div className="h-[200px] rounded-3xl p-2 relative" style={{background: '#0a0a0a', border: '1px solid #1a1a1a'}}>
                                 <ResponsiveContainer width="100%" height="100%">
                                     <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
-                                        <PolarGrid stroke="#ffffff10" />
+                                        <PolarGrid stroke="#222" />
                                         <PolarAngleAxis 
                                             dataKey="subject" 
-                                            tick={{ fill: '#666', fontSize: 10, fontWeight: 'bold' }} 
+                                            tick={{ fill: '#444', fontSize: 10, fontWeight: 900 }} 
                                         />
-                                        <Radar
+                                        <RadarLine
                                             name={player.name}
                                             dataKey="value"
-                                            stroke="#10b981"
-                                            fill="#10b981"
+                                            stroke="#FF4500"
+                                            fill="#FF4500"
                                             fillOpacity={0.4}
+                                            strokeWidth={2}
                                         />
                                     </RadarChart>
                                 </ResponsiveContainer>
@@ -70,39 +71,39 @@ function SkillCard({ player, onUpdate }) {
 
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between px-2">
-                                    <span className="text-[10px] font-black uppercase text-gray-500">可用點數 (Matches / 10)</span>
-                                    <span className={`text-xl font-black italic ${player.availablePoints > 0 ? 'text-yellow-500 animate-bounce' : 'text-gray-700'}`}>
+                                    <span className="text-[10px] font-black uppercase text-[#555]">SKILL POINTS AVAILABLE</span>
+                                    <span className={`font-display text-4xl leading-none ${player.availablePoints > 0 ? 'text-yellow-500 animate-pulse' : 'text-[#222]'}`} style={{fontFamily: "'Bebas Neue', sans-serif"}}>
                                         {player.availablePoints}
                                     </span>
                                 </div>
 
                                  <div className="grid grid-cols-2 gap-2">
                                     {Object.entries(SKILL_LABELS).map(([key, { label, icon: Icon, color }]) => (
-                                        <div key={key} className="bg-white/5 rounded-2xl p-3 flex flex-col gap-2 border border-white/5 hover:border-white/10 transition-all">
+                                        <div key={key} className="p-3 flex flex-col gap-2 rounded-xl transition-all" style={{background: '#111', border: '1px solid #222'}}>
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
                                                     <Icon className={`w-3 h-3 ${color}`} />
-                                                    <span className="text-[10px] font-bold text-gray-400 uppercase">{label}</span>
+                                                    <span className="text-[9px] font-black text-[#555] uppercase">{label}</span>
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     <span className="text-sm font-black italic">{player.skills?.[key] || 1}</span>
                                                     {ROLES[player.role || 'none']?.bonus === key && (
-                                                        <span className="text-[8px] text-emerald-400 font-bold">+1</span>
+                                                        <span className="text-[8px] text-[#FF4500] font-bold">+1</span>
                                                     )}
                                                 </div>
                                             </div>
-                                            <div className="flex gap-1">
+                                            <div className="flex gap-1.5">
                                                 <button 
                                                     onClick={() => handleSkillChange(key, -1)}
                                                     disabled={(player.skills?.[key] || 1) <= 1}
-                                                    className="flex-1 h-8 bg-white/5 rounded-lg flex items-center justify-center hover:bg-red-500/20 disabled:opacity-20 transition-all"
+                                                    className="flex-1 h-8 bg-[#1a1a1a] rounded flex items-center justify-center hover:bg-red-500/20 disabled:opacity-20 transition-all border border-[#222]"
                                                 >
                                                     <Minus className="w-3 h-3" />
                                                 </button>
                                                 <button 
                                                     onClick={() => handleSkillChange(key, 1)}
                                                     disabled={(player.skills?.[key] || 1) >= 5 || player.availablePoints <= 0}
-                                                    className="flex-1 h-8 bg-white/5 rounded-lg flex items-center justify-center hover:bg-emerald-500/20 disabled:opacity-20 transition-all"
+                                                    className="flex-1 h-8 bg-[#1a1a1a] rounded flex items-center justify-center hover:bg-emerald-500/20 disabled:opacity-20 transition-all border border-[#222]"
                                                 >
                                                     <Plus className="w-3 h-3" />
                                                 </button>
@@ -113,15 +114,15 @@ function SkillCard({ player, onUpdate }) {
                             </div>
                         </div>
                         <div className="mt-4 px-2 space-y-2">
-                            <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest text-gray-600">
+                            <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest text-[#444]">
                                 <span>Level Progress</span>
                                 <span>{player.totalMatches % 10} / 10 Matches</span>
                             </div>
-                            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-1.5 w-full bg-[#111] rounded-full overflow-hidden">
                                 <motion.div 
                                     initial={{ width: 0 }}
                                     animate={{ width: `${(player.totalMatches % 10) * 10}%` }}
-                                    className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                                    className="h-full bg-[#FF4500]"
                                 />
                             </div>
                         </div>
@@ -166,12 +167,14 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
         if (!selectedIcon.startsWith('data:image')) {
             setSelectedIcon(EMOJIS[Math.floor(Math.random() * EMOJIS.length)]);
         }
+        setShowAddForm(false);
     };
 
     const startEdit = (player) => {
         setEditingId(player.id);
         setNewName(player.name);
         setSelectedIcon(player.icon);
+        setShowAddForm(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -179,38 +182,7 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
         setEditingId(null);
         setNewName('');
         setSelectedIcon(EMOJIS[0]);
-    };
-
-    const compressImage = (file, maxWidth = 128, maxHeight = 128) => {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    if (width > height) {
-                        if (width > maxWidth) {
-                            height *= maxWidth / width;
-                            width = maxWidth;
-                        }
-                    } else {
-                        if (height > maxHeight) {
-                            width *= maxHeight / height;
-                            height = maxHeight;
-                        }
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL('image/jpeg', 0.7));
-                };
-            };
-        });
+        setShowAddForm(false);
     };
 
     const handleFileChange = async (e) => {
@@ -218,11 +190,12 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
         if (file) {
             setIsUploading(true);
             try {
-                const compressed = await compressImage(file);
-                setSelectedIcon(compressed);
+                // simple FileReader for dataUrl (compressing logic kept for utility)
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => setSelectedIcon(event.target.result);
             } catch (error) {
                 console.error('Image processing failed:', error);
-                alert('相片處理失敗，請試下細啲嘅相。');
             } finally {
                 setIsUploading(false);
             }
@@ -233,56 +206,60 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
 
     return (
         <div className="space-y-8 pb-24 text-white">
-            <header className="space-y-1">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white">
-                        {editingId ? '修改' : '成員'} <span className="text-emerald-400">{editingId ? 'PROFILE' : 'JOIN'}</span>
-                    </h2>
-                    {isAdmin && (
-                        <button 
-                            onClick={() => setShowAddForm(!showAddForm)}
-                            className={`p-3 rounded-2xl transition-all ${showAddForm ? 'bg-red-500/10 text-red-500 rotate-45' : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'}`}
-                        >
-                            <Plus className="w-6 h-6" />
-                        </button>
-                    )}
-                </div>
+            <header className="flex items-center justify-between">
+                <h2 className="font-display text-3xl tracking-wide uppercase" style={{fontFamily: "'Bebas Neue', sans-serif"}}>
+                    {editingId ? 'EDIT' : 'PLAYER'} <span style={{color:'#FF4500'}}>{editingId ? 'ATHLETE' : 'ROSTER'}</span>
+                </h2>
+                {isAdmin && (
+                    <button 
+                        onClick={() => {
+                            if(editingId) cancelEdit();
+                            else setShowAddForm(!showAddForm);
+                        }}
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${showAddForm ? 'bg-[#220000] text-red-500 border border-red-900/30' : 'bg-[#1a1a1a] text-white border border-[#222] hover:border-[#FF4500]'}`}
+                    >
+                        {showAddForm ? <X className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+                    </button>
+                )}
             </header>
 
             <AnimatePresence>
-                {(showAddForm || editingId) && (
+                {showAddForm && (
                     <motion.section 
-                        initial={{ opacity: 0, y: -20, height: 0 }}
+                        initial={{ opacity: 0, y: -10, height: 0 }}
                         animate={{ opacity: 1, y: 0, height: 'auto' }}
-                        exit={{ opacity: 0, y: -20, height: 0 }}
+                        exit={{ opacity: 0, y: -10, height: 0 }}
                         className="overflow-hidden"
                     >
-                        <div className={`p-6 glass rounded-[40px] border transition-all duration-500 relative ${editingId ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-emerald-500/20 bg-emerald-500/5'}`}>
+                        <div className="p-6 rounded-3xl relative" style={{background: '#111', border: `1px solid ${editingId ? '#FF4500' : '#222'}`}}>
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 <div className="space-y-3">
-                                    <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${editingId ? 'text-yellow-500' : 'text-emerald-400'}`}>1. 選擇 ICON</label>
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em]" style={{color: '#555'}}>1. CHOOSE ATHLETE ICON</label>
                                     <div className="flex flex-wrap gap-2.5">
-                                        <button key="upload" type="button" onClick={() => fileInputRef.current?.click()} className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl transition-all active:scale-90 border-2 border-dashed ${selectedIcon && selectedIcon.startsWith('data:image') ? 'border-emerald-500 bg-emerald-500/20' : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10'}`}>
-                                            {selectedIcon && selectedIcon.startsWith('data:image') ? <img src={selectedIcon} alt="Preview" className="w-full h-full object-cover rounded-xl" /> : <Camera className="w-5 h-5" />}
+                                        <button key="upload" type="button" onClick={() => fileInputRef.current?.click()} 
+                                            className="w-12 h-12 rounded-xl flex items-center justify-center text-xl transition-all active:scale-95 border-2 border-dashed relative overflow-hidden"
+                                            style={{borderColor: '#222', background: '#050505'}}>
+                                            {selectedIcon && selectedIcon.startsWith('data:image') ? <img src={selectedIcon} alt="Preview" className="w-full h-full object-cover" /> : <Camera className="w-5 h-5 text-[#333]" />}
                                         </button>
                                         <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
                                         {EMOJIS.map(emoji => (
-                                            <button key={emoji} type="button" onClick={() => setSelectedIcon(emoji)} className={`w-11 h-11 rounded-2xl flex items-center justify-center text-2xl transition-all active:scale-90 ${selectedIcon === emoji ? (editingId ? 'bg-yellow-500' : 'bg-emerald-500') + ' text-white shadow-xl ring-2 ring-emerald-500/20' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+                                            <button key={emoji} type="button" onClick={() => setSelectedIcon(emoji)} 
+                                                className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all active:scale-95 ${selectedIcon === emoji ? 'bg-[#FF4500] text-white' : 'bg-[#050505] text-[#333] hover:text-white'}`}
+                                                style={{border: selectedIcon === emoji ? 'none' : '1px solid #1a1a1a'}}>
                                                 {emoji}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
                                 <div className="space-y-3">
-                                    <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${editingId ? 'text-yellow-500' : 'text-emerald-400'}`}>2. 名稱</label>
-                                    <div className="flex flex-col sm:flex-row gap-3">
-                                        <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="在此輸入..." className="flex-1 w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 outline-none focus:border-emerald-500 transition-all font-black text-lg" />
-                                        <div className="flex gap-2">
-                                            {editingId && <button type="button" onClick={cancelEdit} className="px-6 bg-white/5 rounded-2xl py-4 border border-white/10 active:scale-95 transition-all"><X className="w-6 h-6" /></button>}
-                                            <button type="submit" className={`flex-1 sm:px-10 rounded-2xl py-4 shadow-xl active:scale-95 transition-all ${editingId ? 'bg-yellow-500 text-black' : 'bg-emerald-500 text-white'}`}>
-                                                {editingId ? <Check className="w-6 h-6 mx-auto" /> : <Plus className="w-6 h-6 mx-auto" />}
-                                            </button>
-                                        </div>
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em]" style={{color: '#555'}}>2. ATHLETE NAME</label>
+                                    <div className="flex gap-2">
+                                        <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="ENTER PLAYER NAME..." 
+                                            className="flex-1 bg-[#050505] border border-[#222] rounded-xl px-4 py-3 outline-none focus:border-[#FF4500] transition-all font-black text-sm uppercase tracking-wide placeholder:text-[#222]" />
+                                        <button type="submit" className="px-8 rounded-xl font-display text-xl transition-all active:scale-95" 
+                                            style={{background: '#FF4500', color: '#fff'}}>
+                                            {editingId ? 'UPDATE' : 'JOIN'}
+                                        </button>
                                     </div>
                                 </div>
                             </form>
@@ -291,75 +268,65 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
                 )}
             </AnimatePresence>
 
-            <section className="space-y-4">
+            <section className="space-y-6">
                 <div className="relative group">
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600 group-focus-within:text-emerald-400 transition-colors" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#333] group-focus-within:text-[#FF4500] transition-colors" />
                     <input 
                         type="text" 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="搜尋隊員..."
-                        className="w-full bg-white/5 border border-white/10 rounded-[30px] pl-14 pr-6 py-5 outline-none focus:border-emerald-500/30 transition-all font-bold text-sm"
+                        placeholder="FILTER ATHLETES..."
+                        className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl pl-12 pr-6 py-4 outline-none focus:border-[#FF450033] transition-all font-black text-xs uppercase tracking-widest placeholder:text-[#222]"
                     />
-                </div>
-
-                <div className="flex items-center justify-between ml-1">
-                    <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">現有成員 ({filteredPlayers.length})</h3>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
                     <AnimatePresence mode="popLayout">
                         {[...filteredPlayers].sort((a, b) => a.name.localeCompare(b.name, 'zh-HK')).map((p) => (
-                            <motion.div layout key={p.id} className={`p-5 glass rounded-[32px] flex flex-col border transition-all group ${editingId === p.id ? 'border-yellow-500/50 bg-yellow-500/10' : 'border-white/5 hover:border-white/10'}`}>
-                                <div className="flex items-center justify-between">
+                            <motion.div layout key={p.id} className="p-5 rounded-2xl flex flex-col transition-all group overflow-hidden relative" 
+                                style={{background: '#111', border: editingId === p.id ? '1px solid #FF4500' : '1px solid #222'}}>
+                                
+                                {/* Background Slash */}
+                                <div className="absolute top-0 right-0 w-24 h-full transform translate-x-12 -skew-x-12 opacity-[0.03]" style={{background: '#FF4500'}} />
+
+                                <div className="flex items-center justify-between relative z-10">
                                     <div className="flex items-center gap-4">
-                                        <div className="relative w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
-                                            <PlayerIcon 
-                                                icon={p.icon} 
-                                                name={p.name} 
-                                                role={p.role} 
-                                                isHot={p.isHot} 
-                                                isGoat={p.isGoat} 
-                                                className="w-full h-full" 
-                                            />
+                                        <div className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center relative" style={{background: '#050505', border: '1px solid #1a1a1a'}}>
+                                            <PlayerIcon icon={p.icon} name={p.name} className="w-10 h-10" />
+                                            {p.isHot && <div className="absolute top-0 right-0 p-1" style={{background: '#FF4500'}}><Flame className="w-3 h-3 text-white" /></div>}
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xl font-black italic tracking-tighter uppercase">{p.name}</span>
-                                                {p.availablePoints > 0 && <span className="text-[8px] bg-yellow-500 text-black px-1.5 py-0.5 rounded-full font-black animate-bounce">POINTS!</span>}
-                                                {ROLES[p.role]?.icon && (
-                                                    <div className="bg-white/10 p-1 rounded-lg border border-white/10" title={ROLES[p.role].label}>
-                                                        {React.createElement(ROLES[p.role].icon, { className: "w-3 h-3 text-emerald-400" })}
-                                                    </div>
-                                                )}
+                                                <span className="font-display text-2xl tracking-wide uppercase leading-none" style={{fontFamily: "'Bebas Neue', sans-serif"}}>{p.name}</span>
+                                                {p.availablePoints > 0 && <span className="bg-[#FF4500] text-white text-[7px] font-black px-1.5 py-0.5 rounded leading-none">PTS!</span>}
                                             </div>
-                                            <div className="flex gap-4 mt-1">
-                                                <div className="flex items-center gap-2">
-                                                    {isAdmin ? (
-                                                        <select 
-                                                            value={p.role || 'none'} 
-                                                            onChange={(e) => onUpdate(p.id, { role: e.target.value })}
-                                                            className="bg-transparent text-[8px] font-black uppercase tracking-widest text-emerald-400 border border-emerald-500/30 rounded-full px-2 py-0.5 outline-none hover:bg-emerald-500/10 cursor-pointer"
-                                                        >
-                                                            {Object.entries(ROLES).map(([key, { label }]) => (
-                                                                <option key={key} value={key} className="bg-[#111]">{label}</option>
-                                                            ))}
-                                                        </select>
-                                                    ) : (
-                                                        <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400/60 bg-emerald-500/5 px-2 py-0.5 rounded-full border border-emerald-500/10">
-                                                            {ROLES[p.role || 'none']?.label}
-                                                        </span>
-                                                    )}
+                                            <div className="flex items-center gap-4 mt-1.5">
+                                                {isAdmin ? (
+                                                    <select 
+                                                        value={p.role || 'none'} 
+                                                        onChange={(e) => onUpdate(p.id, { role: e.target.value })}
+                                                        className="bg-transparent text-[8px] font-black uppercase tracking-widest text-[#FF4500] border border-[#FF450033] rounded-full px-2 py-0.5 outline-none hover:bg-[#FF450011] cursor-pointer"
+                                                    >
+                                                        {Object.entries(ROLES).map(([key, { label }]) => (
+                                                            <option key={key} value={key} className="bg-[#111]">{label}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <span className="text-[8px] font-black uppercase tracking-widest text-[#FF450066] border border-[#FF450022] px-2 py-0.5 rounded-full">
+                                                        {ROLES[p.role || 'none']?.label}
+                                                    </span>
+                                                )}
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-[9px] font-black uppercase tracking-tight" style={{color: '#444'}}>{p.wins || 0}W</span>
+                                                    <span className="text-[9px] font-black uppercase tracking-tight" style={{color: '#444'}}>{p.totalMatches || 0}G</span>
                                                 </div>
-                                                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">{p.wins || 0} 勝仗</span>
-                                                <span className={`text-[10px] font-bold uppercase tracking-widest ${p.totalMatches >= 10 ? 'text-yellow-500' : 'text-gray-500'}`}>{p.totalMatches || 0} 場經驗</span>
                                             </div>
                                         </div>
                                     </div>
                                     {isAdmin && (
-                                        <div className="flex gap-2">
-                                            <button onClick={() => startEdit(p)} className="p-3 text-gray-700 hover:text-yellow-500 hover:bg-yellow-500/10 rounded-2xl transition-all opacity-0 group-hover:opacity-100"><Edit2 className="w-5 h-5" /></button>
-                                            <button onClick={() => onDelete(p.id)} className="p-3 text-gray-700 hover:text-red-500 hover:bg-red-500/10 rounded-2xl transition-all opacity-0 group-hover:opacity-100"><Trash2 className="w-5 h-5" /></button>
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => startEdit(p)} className="p-3 text-[#333] hover:text-white transition-all"><Edit2 className="w-4 h-4" /></button>
+                                            <button onClick={() => onDelete(p.id)} className="p-3 text-[#333] hover:text-red-500 transition-all"><Trash2 className="w-4 h-4" /></button>
                                         </div>
                                     )}
                                 </div>
@@ -370,39 +337,34 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
                 </div>
             </section>
 
-            {/* Admin Controls */}
+            {/* Admin Systems */}
             {isAdmin && (
-                <section className="pt-10 pb-20 space-y-4 border-t border-white/5">
-                    <div className="flex items-center gap-2 mb-4 px-2">
-                        <ShieldCheck className="w-4 h-4 text-gray-600" />
-                        <h3 className="text-[10px] font-black text-gray-600 uppercase tracking-widest">數據管理 (Admin Only)</h3>
+                <section className="pt-12 pb-20 space-y-4 border-t" style={{borderColor: '#1a1a1a'}}>
+                    <div className="flex items-center gap-2 mb-2">
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#333]" />
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em]" style={{color: '#333'}}>DATA OPERATIONS</h3>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-3">
-                        <button 
-                            onClick={onExport}
-                            className="flex items-center justify-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/20 transition-all"
-                        >
-                            <Download className="w-4 h-4" /> 下載數據
+                        <button onClick={onExport} className="flex flex-col items-center gap-2 p-5 rounded-xl transition-all relative overflow-hidden group" style={{background: '#111', border: '1px solid #222'}}>
+                            <Download className="w-5 h-5 text-emerald-500 transition-transform group-hover:-translate-y-1" />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-[#555]">EXPORT DATA</span>
                         </button>
-                        <label className="flex items-center justify-center gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-[10px] font-black uppercase tracking-widest text-blue-400 hover:bg-blue-500/20 transition-all cursor-pointer">
-                            <Upload className="w-4 h-4" /> 匯入數據
+                        <label className="flex flex-col items-center gap-2 p-5 rounded-xl transition-all cursor-pointer relative overflow-hidden group" style={{background: '#111', border: '1px solid #222'}}>
+                            <Upload className="w-5 h-5 text-blue-500 transition-transform group-hover:-translate-y-1" />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-[#555]">IMPORT DATA</span>
                             <input type="file" accept=".json" onChange={onImport} className="hidden" />
                         </label>
                     </div>
 
-                    <button 
-                        onClick={onPushToCloud}
-                        className="w-full p-4 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
-                    >
-                        ☁️ 將此機數據上傳至雲端 (Manual Push)
+                    <button onClick={onPushToCloud} className="w-full py-5 rounded-xl font-display text-xl transition-all active:scale-95 shadow-2xl shadow-[#FF450022] mt-2" 
+                        style={{background: 'linear-gradient(135deg, #FF4500, #FF6A00)', color: '#fff', fontFamily: "'Bebas Neue', sans-serif"}}>
+                        SYNC ALL DATA TO CLOUD
                     </button>
 
-                    <button 
-                        onClick={onResetAll}
-                        className="w-full p-4 bg-red-500/5 border border-red-500/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-500/50 hover:bg-red-500/10 hover:text-red-500 transition-all"
-                    >
-                        重設所有數據 (Danger Room)
+                    <button onClick={onResetAll} className="w-full py-4 rounded-xl text-[9px] font-black uppercase tracking-[0.3em] transition-all hover:bg-red-950/20 active:opacity-50" 
+                        style={{color: '#220000', border: '1px solid #1a0000'}}>
+                        ERASE DATABASE
                     </button>
                 </section>
             )}

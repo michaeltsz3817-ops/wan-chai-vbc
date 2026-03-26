@@ -414,39 +414,44 @@ function App() {
     };
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white pb-32 font-sans selection:bg-emerald-500/30 overflow-x-hidden">
-            <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-30">
-                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/10 rounded-full blur-[120px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px]" />
+        <div className="min-h-screen text-white pb-32 overflow-x-hidden grid-bg" style={{background:'#050505'}}>
+            {/* Subtle orange glow top-left */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-0 left-0 w-[40%] h-[30%]" style={{background:'radial-gradient(ellipse at top left, rgba(255,69,0,0.06) 0%, transparent 70%)'}} />
             </div>
 
-            <header className="sticky top-0 z-[60] p-5 glass border-b border-white/5 backdrop-blur-3xl">
-                <div className="flex items-center justify-between max-w-lg mx-auto">
+            <header className="sticky top-0 z-[60] border-b" style={{background:'rgba(5,5,5,0.95)', borderColor:'#1a1a1a', backdropFilter:'blur(20px)'}}>
+                {/* Orange accent top bar */}
+                <div className="h-[3px] w-full" style={{background:'linear-gradient(90deg, #FF4500, #FF6A00 50%, transparent)'}} />
+                <div className="flex items-center justify-between max-w-lg mx-auto px-5 py-3">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20 rotate-3 transition-transform hover:rotate-0">
-                            <Trophy className="w-6 h-6 text-white" />
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:'#FF4500'}}>
+                            <Trophy className="w-5 h-5 text-white" />
                         </div>
-                        <div onClick={() => console.log('State Debug:', { activeTab, playersCount: players?.length, matchesCount: matches?.length })}>
-                            <h1 className="text-2xl font-black italic tracking-tighter leading-none">WAN CHAI <span className="text-emerald-400">VBC</span></h1>
-                            <p className="text-[8px] font-bold text-gray-500 tracking-[0.3em] uppercase ml-0.5">Volleyball Management System</p>
+                        <div onClick={() => console.log('Debug:', { activeTab })}>
+                            <h1 className="font-display text-2xl leading-none tracking-wide" style={{fontFamily:"'Bebas Neue', sans-serif",letterSpacing:'0.05em'}}>
+                                WAN CHAI <span style={{color:'#FF4500'}}>VBC</span>
+                            </h1>
+                            <p className="text-[7px] font-bold tracking-[0.3em] uppercase" style={{color:'#444'}}>Volleyball Management System</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[8px] font-black uppercase tracking-widest transition-all ${
-                            syncStatus === 'syncing' ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' :
-                            syncStatus === 'error' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
-                            'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                        }`}>
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ${
+                            syncStatus === 'syncing' ? 'border-blue-500/30 text-blue-400' :
+                            syncStatus === 'error' ? 'border-red-500/30 text-red-400' :
+                            'text-[#FF4500]'
+                        }`} style={syncStatus === 'success' ? {borderColor:'rgba(255,69,0,0.3)', background:'rgba(255,69,0,0.05)'} : {}}>
                             <div className={`w-1.5 h-1.5 rounded-full ${
                                 syncStatus === 'syncing' ? 'bg-blue-400 animate-pulse' :
-                                syncStatus === 'error' ? 'bg-red-400' :
-                                'bg-emerald-400'
+                                syncStatus === 'error' ? 'bg-red-400' : 'bg-[#FF4500]'
                             }`} />
-                            {syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'error' ? 'Sync Error' : 'Synced'}
+                            {syncStatus === 'syncing' ? 'Syncing' : syncStatus === 'error' ? 'Error' : 'Live'}
                         </div>
-                        <button onClick={() => setIsAdmin(!isAdmin)} className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black tracking-widest transition-all ${isAdmin ? 'bg-red-500 text-white shadow-lg shadow-red-500/30' : 'bg-white/5 text-gray-500'}`}>
-                            <ShieldCheck className={`w-3 h-3 ${isAdmin ? 'animate-pulse' : ''}`} />
-                            {isAdmin ? 'ADMIN ON' : 'ADMIN OFF'}
+                        <button onClick={() => setIsAdmin(!isAdmin)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black tracking-widest transition-all ${
+                            isAdmin ? 'text-white' : 'text-[#555]'
+                        }`} style={isAdmin ? {background:'#FF4500'} : {background:'#111', border:'1px solid #222'}}>
+                            <ShieldCheck className="w-3 h-3" />
+                            {isAdmin ? 'ADMIN' : 'OFF'}
                         </button>
                     </div>
                 </div>

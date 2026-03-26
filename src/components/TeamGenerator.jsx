@@ -185,16 +185,18 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
     return (
         <div className="space-y-6 pb-24 text-white">
             <header className="flex items-center justify-between">
-                <h2 className="text-2xl font-black italic tracking-tighter uppercase text-white">組隊 <span className="text-emerald-400">PICKER</span></h2>
-                <div className="flex gap-2 bg-white/5 p-1 rounded-2xl border border-white/10">
+                <h2 className="font-display text-3xl tracking-wide" style={{fontFamily:"'Bebas Neue', sans-serif", letterSpacing:'0.05em'}}>
+                    TEAM <span style={{color:'#FF4500'}}>PICKER</span>
+                </h2>
+                <div className="flex gap-1.5 p-1 rounded-xl" style={{background:'#111', border:'1px solid #222'}}>
                     {[2, 3].map(n => (
                         <button
                             key={n}
                             onClick={() => setNumTeams(n)}
-                            className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${numTeams === n ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-gray-500 hover:text-gray-300'
-                                }`}
+                            className="px-4 py-1.5 rounded-lg text-xs font-black transition-all uppercase"
+                            style={numTeams === n ? {background:'#FF4500', color:'#fff'} : {color:'#555'}}
                         >
-                            {n} 隊
+                            {n} TEAMS
                         </button>
                     ))}
                 </div>
@@ -203,110 +205,134 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
             {/* Selection Status */}
             <section className="space-y-4">
                 <div className="flex items-center justify-between ml-1">
-                    <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">今日出場 ({presentPlayerIds?.length || 0})</h3>
+                    <h3 className="text-[10px] font-black uppercase tracking-widest" style={{color:'#666'}}>
+                        ATTENDANCE ({presentPlayerIds?.length || 0})
+                    </h3>
                     <button
                         onClick={onResetAttendance}
-                        className="text-[10px] font-black text-red-400 uppercase tracking-widest hover:text-red-300 flex items-center gap-1 bg-red-400/10 px-3 py-1 rounded-full border border-red-400/20"
+                        className="text-[9px] font-black uppercase tracking-widest flex items-center gap-1 px-3 py-1.5 rounded-full transition-all"
+                        style={{background:'#1a1a1a', border:'1px solid #333', color:'#888'}}
                     >
-                        <RefreshCw className="w-3 h-3" /> 修改名單
+                        <RefreshCw className="w-3 h-3" /> MODIFY
                     </button>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                     {players.filter(p => presentPlayerIds?.includes(p.id)).map(p => (
-                        <div key={p.id} className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-2xl">
-                            <PlayerIcon icon={p.icon} name={p.name} role={p.role} isHot={p.isHot} isGoat={p.isGoat} className="w-5 h-5" />
-                            <span className="text-[10px] font-black uppercase tracking-tighter">{p.name}</span>
+                        <div key={p.id} className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+                            style={{background:'#111', border:'1px solid #333'}}>
+                            <PlayerIcon icon={p.icon} name={p.name} role={p.role} isHot={p.isHot} className="w-5 h-5" />
+                            <span className="text-[9px] font-black uppercase tracking-tighter">{p.name}</span>
                         </div>
                     ))}
-                    {(!presentPlayerIds || presentPlayerIds.length === 0) && <p className="text-[10px] text-gray-600 italic">尚未點名...</p>}
+                    {(!presentPlayerIds || presentPlayerIds.length === 0) && <p className="text-[10px] italic" style={{color:'#555'}}>Awaiting check-in...</p>}
                 </div>
             </section>
 
-            <div className="flex gap-3">
+            <div className="flex gap-2.5">
                 <button
                     onClick={generateTeams}
                     disabled={!presentPlayerIds || presentPlayerIds.length < (numTeams * 2)}
-                    className="flex-1 py-5 bg-emerald-500 rounded-[32px] font-black italic text-xl tracking-tighter uppercase shadow-2xl shadow-emerald-500/30 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale"
+                    className="flex-1 py-5 rounded-2xl font-display text-2xl tracking-wide uppercase transition-all disabled:opacity-30"
+                    style={{
+                        background: 'linear-gradient(135deg, #FF4500 0%, #FF6A00 100%)',
+                        fontFamily: "'Bebas Neue', sans-serif"
+                    }}
                 >
-                    {teams.length > 0 ? '重新隨機分隊' : '自動隨機分隊'}
+                    {teams.length > 0 ? 'RESHUFFLE TEAMS' : 'GENERATE TEAMS'}
                 </button>
                 {teams.length > 0 && (
                     <button
                         onClick={onReset}
-                        className="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-[28px] flex items-center justify-center text-red-500 shadow-xl active:scale-90 transition-all hover:bg-red-500 hover:text-white"
+                        className="w-[68px] h-[68px] rounded-2xl flex items-center justify-center transition-all active:scale-95"
+                        style={{background:'#1a1a1a', border:'1px solid #333', color:'#888'}}
                     >
-                        <Trash2 className="w-7 h-7" />
+                        <Trash2 className="w-6 h-6" />
                     </button>
                 )}
             </div>
 
             {/* Results Display */}
             {teams.length > 0 && (
-                <div className="grid grid-cols-1 gap-4">
-                    <div className="flex items-center justify-between px-2 pt-4">
-                        <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">分隊結果</h3>
+                <div className="grid grid-cols-1 gap-5">
+                    <div className="flex items-center justify-between px-1 pt-2">
+                        <h3 className="text-[10px] font-black uppercase tracking-widest" style={{color:'#666'}}>MATCHUPS</h3>
                     </div>
                     <AnimatePresence>
-                        {teams.map((team, idx) => (
+                        {teams.map((team, idx) => {
+                            const teamColors = ['#1d4ed8', '#FF4500', '#7c3aed']; // Blue, Orange, Purple
+                            const color = teamColors[idx % teamColors.length];
+                            
+                            return (
                             <motion.div
                                 layout
-                                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 key={idx}
                                 onDragOver={(e) => handleDragOver(e, idx)}
                                 onDragLeave={() => setDragOverTeam(null)}
                                 onDrop={(e) => handleDrop(e, idx)}
-                                className={`p-6 glass rounded-[32px] border transition-all relative overflow-hidden group ${dragOverTeam === idx ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)] bg-emerald-500/5' : 'border-white/5'}`}
+                                className="p-5 rounded-2xl relative overflow-hidden group transition-all"
+                                style={{
+                                    background: '#111',
+                                    border: dragOverTeam === idx ? `1px solid ${color}` : '1px solid #222'
+                                }}
                             >
-                                <div className={`absolute top-0 left-0 w-2 h-full ${idx === 0 ? 'bg-blue-500' : idx === 1 ? 'bg-emerald-500' : 'bg-purple-500'
-                                    }`} />
+                                {/* Diagonal Accent Slash */}
+                                <div className="absolute top-0 right-0 w-32 h-full opacity-10 transform translate-x-10 -skew-x-12"
+                                     style={{background: `linear-gradient(135deg, ${color} 0%, transparent 100%)`}} />
 
-                                <div className="flex items-center justify-between mb-4">
-                                    <h4 className="text-xl font-black italic tracking-tighter uppercase">隊伍 {idx + 1}</h4>
-                                    <div className="flex items-center gap-1 text-[10px] font-black text-gray-500 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full">
-                                        <Users className="w-3 h-3" /> {team.length} 人
+                                <div className="flex items-center justify-between mb-5 relative z-10">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="w-1.5 h-6 rounded-full" style={{background: color}} />
+                                        <h4 className="font-display text-2xl tracking-wide" style={{fontFamily:"'Bebas Neue', sans-serif"}}>TEAM {idx + 1}</h4>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full"
+                                         style={{background:'#1a1a1a', color:'#666'}}>
+                                        <Users className="w-3 h-3" /> {team.length}
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-2 min-h-[60px]">
+                                <div className="grid grid-cols-1 gap-2 min-h-[60px] relative z-10">
                                     {team.map(p => (
                                         <motion.div 
-                                            layout
-                                            key={p.id} 
-                                            draggable
+                                            layout key={p.id} draggable
                                             onDragStart={(e) => handleDragStart(e, p, idx)}
                                             onDragEnd={handleDragEnd}
-                                            className="group/item relative flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 hover:border-white/20 hover:bg-white/10 transition-all select-none"
+                                            className="group/item relative flex items-center justify-between p-3 rounded-xl transition-all select-none"
+                                            style={{background:'#1a1a1a', border:'1px solid #222'}}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div 
                                                     onClick={() => cycleTeam(p, idx)}
-                                                    className="cursor-pointer active:scale-95 p-1 -ml-1 text-gray-600 hover:text-emerald-400 transition-all rounded-md hover:bg-emerald-500/10"
-                                                    title="點擊切換隊伍 / 按住拖拉"
+                                                    className="cursor-pointer active:scale-95 p-1 -ml-1 rounded-lg transition-all"
+                                                    style={{color:'#555'}}
+                                                    title="Tap to cycle / Drag to move"
                                                 >
                                                     <GripVertical className="w-4 h-4" />
                                                 </div>
-                                                <PlayerIcon icon={p.icon} name={p.name} role={p.role} isHot={p.isHot} isGoat={p.isGoat} className="w-7 h-7" />
+                                                <PlayerIcon icon={p.icon} name={p.name} role={p.role} isHot={p.isHot} className="w-8 h-8" />
                                                 <div className="flex flex-col">
-                                                    <span className="font-bold text-sm tracking-tight">{p.name}</span>
+                                                    <span className="font-black text-[13px] tracking-tight uppercase">{p.name}</span>
                                                     {p.form !== 0 && (
-                                                        <span className={`text-[8px] font-bold uppercase tracking-widest ${p.form > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                            {p.form > 0 ? 'HOT FORM 🔥' : 'COLD FORM 🧊'}
+                                                        <span className="text-[7px] font-black uppercase tracking-widest mt-0.5"
+                                                              style={{color: p.form > 0 ? '#FF4500' : '#3b82f6'}}>
+                                                            {p.form > 0 ? 'ON FIRE 🔥' : 'ICE COLD 🧊'}
                                                         </span>
                                                     )}
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <div className="flex gap-0.5 opacity-50 group-hover/item:opacity-100 transition-opacity">
+                                                <div className="flex gap-[3px] opacity-40 group-hover/item:opacity-100 transition-opacity">
                                                     {[1, 2, 3, 4, 5].map(s => (
-                                                        <div key={s} className={`w-1 h-1 rounded-full ${s <= (p.skill || 3) ? 'bg-emerald-400' : 'bg-white/10'}`} />
+                                                        <div key={s} className="w-1.5 h-1.5 rounded-xs"
+                                                             style={{background: s <= (p.skill || 3) ? '#fff' : '#222'}} />
                                                     ))}
                                                 </div>
                                                 <button 
                                                     onClick={() => handleRest(p, idx)}
-                                                    className="w-8 h-8 flex items-center justify-center bg-red-500/10 text-red-400 rounded-lg border border-red-500/20 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover/item:opacity-100"
-                                                    title="移動到休息區"
+                                                    className="w-8 h-8 flex items-center justify-center rounded-lg transition-all opacity-0 group-hover/item:opacity-100"
+                                                    style={{background:'#220000', color:'#ff3333', border:'1px solid #330000'}}
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
@@ -314,47 +340,43 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
                                         </motion.div>
                                     ))}
                                     {team.length === 0 && (
-                                        <div className="h-12 flex items-center justify-center border-2 border-dashed border-white/5 rounded-2xl text-[8px] text-gray-600 font-bold uppercase tracking-widest">
-                                            拖放成員到此隊伍
+                                        <div className="h-12 flex items-center justify-center rounded-xl text-[8px] font-black uppercase tracking-widest"
+                                             style={{border:'1px dashed #333', color:'#555'}}>
+                                            DRAG PLAYERS HERE
                                         </div>
                                     )}
                                 </div>
                             </motion.div>
-                        ))}
+                            )
+                        })}
 
-                        {/* Resting Players Section */}
+                        {/* Resting Players */}
                         {restingPlayers && restingPlayers.length > 0 && (
-                            <motion.div
-                                layout
-                                initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                className="p-6 glass rounded-[32px] border border-white/5 bg-white/1 overflow-hidden"
-                            >
+                            <motion.div layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                                className="p-5 rounded-2xl" style={{background:'#111', border:'1px solid #222'}}>
                                 <div className="flex items-center justify-between mb-4">
-                                    <h4 className="text-xl font-black italic tracking-tighter uppercase text-gray-500">休息中 (RESTING)</h4>
-                                    <div className="flex items-center gap-1 text-[10px] font-black text-gray-500 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full">
-                                        <Users className="w-3 h-3" /> {restingPlayers.length} 人
+                                    <h4 className="font-display text-xl tracking-wide" style={{fontFamily:"'Bebas Neue', sans-serif", color:'#666'}}>RESTING</h4>
+                                    <div className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full"
+                                         style={{background:'#1a1a1a', color:'#666'}}>
+                                        <Users className="w-3 h-3" /> {restingPlayers.length}
                                     </div>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     {restingPlayers.map(p => (
-                                        <div key={p.id} className="group/resting relative bg-white/5 border border-white/5 rounded-2xl p-2 pr-4 flex items-center gap-3 hover:bg-white/10 transition-all">
-                                            <PlayerIcon icon={p.icon} name={p.name} role={p.role} isHot={p.isHot} isGoat={p.isGoat} className="w-6 h-6" />
-                                            <span className="text-xs font-bold whitespace-nowrap">{p.name}</span>
+                                        <div key={p.id} className="group/resting relative p-2 pr-4 flex items-center gap-2.5 rounded-xl transition-all"
+                                             style={{background:'#1a1a1a', border:'1px solid #222'}}>
+                                            <PlayerIcon icon={p.icon} name={p.name} role={p.role} className="w-6 h-6" />
+                                            <span className="text-[11px] font-black uppercase">{p.name}</span>
                                             
-                                            {/* Action Menu for joining a team */}
                                             <div className="flex gap-1 ml-2 opacity-0 group-hover/resting:opacity-100 transition-all">
                                                 {teams.map((_, tIdx) => (
-                                                    <button
-                                                        key={tIdx}
-                                                        onClick={() => handleJoin(p, tIdx)}
-                                                        className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black border transition-all ${
-                                                            tIdx === 0 ? 'bg-blue-500/20 border-blue-500/40 text-blue-400 hover:bg-blue-500' :
-                                                            tIdx === 1 ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500' :
-                                                            'bg-purple-500/20 border-purple-500/40 text-purple-400 hover:bg-purple-500'
-                                                        } hover:text-white`}
-                                                        title={`加入隊伍 ${tIdx + 1}`}
-                                                    >
+                                                    <button key={tIdx} onClick={() => handleJoin(p, tIdx)}
+                                                        className="w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-black transition-all"
+                                                        style={{
+                                                            background: tIdx===0 ? 'rgba(29,78,216,0.1)' : tIdx===1 ? 'rgba(255,69,0,0.1)' : 'rgba(124,58,237,0.1)',
+                                                            color: tIdx===0 ? '#3b82f6' : tIdx===1 ? '#FF4500' : '#a78bfa',
+                                                            border: `1px solid ${tIdx===0 ? 'rgba(59,130,246,0.3)' : tIdx===1 ? 'rgba(255,69,0,0.3)' : 'rgba(167,139,250,0.3)'}`
+                                                        }}>
                                                         {tIdx + 1}
                                                     </button>
                                                 ))}

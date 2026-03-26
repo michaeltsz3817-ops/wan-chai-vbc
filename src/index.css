@@ -4,14 +4,67 @@
 
 :root {
   color-scheme: dark;
+  --accent: #FF4500;
+  --accent-dim: #FF450022;
+  --card: #111111;
+  --border: #222222;
 }
 
 body {
-  @apply bg-background text-white antialiased;
+  background: #050505;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
   -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Glassmorphism utility */
+/* Sports brand card */
 .glass {
-  @apply bg-white/5 backdrop-blur-md border border-white/10;
+  background: #111111;
+  border: 1px solid #222222;
 }
+
+/* Bebas Neue heading */
+.font-display {
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 0.04em;
+}
+
+/* Orange accent bar (diagonal) */
+.accent-bar {
+  background: linear-gradient(135deg, #FF4500 0%, #FF6A00 100%);
+}
+
+/* Win rate bar pulse */
+@keyframes bar-fill {
+  from { width: 0%; }
+}
+
+/* Subtle grid background */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Rank number style */
+.rank-badge-1 { background: #F59E0B; color: #000; }
+.rank-badge-2 { background: #9CA3AF; color: #000; }
+.rank-badge-3 { background: #B45309; color: #fff; }
+
+/* Diagonal slash BG for team cards */
+.team-slash-blue {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a5f 100%);
+}
+.team-slash-orange {
+  background: linear-gradient(135deg, #FF4500 0%, #7c2900 100%);
+}
+.team-slash-purple {
+  background: linear-gradient(135deg, #7c3aed 0%, #3b1872 100%);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #111; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }

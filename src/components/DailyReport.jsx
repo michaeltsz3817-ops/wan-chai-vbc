@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { DollarSign, Calendar, Clock, ChevronLeft, ChevronRight, Filter, Copy, CheckCircle2 } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, isSameMonth, isToday, parseISO, isSameDay, subDays, addDays } from 'date-fns';
+import { DollarSign, Calendar, Clock, ChevronLeft, ChevronRight, Filter, Copy, CheckCircle2, TrendingUp } from 'lucide-react';
+import { format, isToday, parseISO, isSameDay, isSameMonth, subDays, addDays } from 'date-fns';
 import { zhHK } from 'date-fns/locale';
-
 import PlayerIcon from './ui/PlayerIcon';
 
 export default function DailyReport({ players, matches }) {
-    const [viewMode, setViewMode] = useState('daily'); // 'daily' or 'monthly'
+    const [viewMode, setViewMode] = useState('daily');
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [isCopied, setIsCopied] = useState(false);
@@ -25,17 +24,11 @@ export default function DailyReport({ players, matches }) {
         if (!m || !m.date) return false;
         try {
             const matchDate = parseISO(m.date);
-            if (viewMode === 'daily') {
-                return isSameDay(matchDate, selectedDate);
-            } else {
-                return isSameMonth(matchDate, currentMonth);
-            }
-        } catch (e) {
-            return false;
-        }
+            if (viewMode === 'daily') return isSameDay(matchDate, selectedDate);
+            return isSameMonth(matchDate, currentMonth);
+        } catch (e) { return false; }
     });
 
-    // Total Stake = total amount losers lose (money changing hands)
     const totalStake = filteredMatches.reduce((acc, m) => {
         if (!m || !m.teams) return acc;
         const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams).sort().map(k => m.teams[k]);
@@ -51,42 +44,29 @@ export default function DailyReport({ players, matches }) {
             if (!m || !m.teams) return;
             const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams).sort().map(k => m.teams[k]);
             if (m.winnerTeam === undefined || !matchTeams[m.winnerTeam]) return;
-            const teamsFlat = matchTeams.flat();
-            const wasInWinner = matchTeams[m.winnerTeam]?.some(wp => wp.id === p.id) || false;
-            const wasInLoser = (teamsFlat.some(lp => lp.id === p.id) && !wasInWinner) || false;
-
-            if (wasInWinner) {
-                totalEarnings += m.payout;
-                dailyWins += 1;
-            } else if (wasInLoser) {
-                totalEarnings -= m.stake;
-                dailyLosses += 1;
-            }
+            const wasInWinner = matchTeams[m.winnerTeam]?.some(wp => wp.id === p.id);
+            const wasInMatch = matchTeams.flat().some(tp => tp && tp.id === p.id);
+            if (!wasInMatch) return;
+            if (wasInWinner) { totalEarnings += m.payout; dailyWins += 1; }
+            else { totalEarnings -= m.stake; dailyLosses += 1; }
         });
-
         const hasPlayed = filteredMatches.some(m => {
-            if (!m || !m.teams) return false;
-            const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams).sort().map(k => m.teams[k]);
-            return matchTeams.flat().some(tp => tp && tp.id === p.id);
+            const mt = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams || {}).sort().map(k => m.teams[k]);
+            return mt.flat().some(tp => tp && tp.id === p.id);
         });
         return hasPlayed ? { ...p, totalEarnings, dailyWins, dailyLosses } : null;
-    }).filter(Boolean);
+    }).filter(Boolean).sort((a, b) => b.totalEarnings - a.totalEarnings);
 
     const copyToWhatsApp = () => {
         const dateStr = format(selectedDate, 'yyyy-MM-dd');
-        const title = `🏐 *Wan Chai VBC 結算報告* (${dateStr})`;
-        const total = `💰 *總結算金額: $${totalStake}*`;
-        const playerStats = playersWithDailyStats.map(p => {
-            const signal = p.totalEarnings >= 0 ? '🟢' : '🔴';
-            return `${signal} *${p.name}*: ${p.totalEarnings >= 0 ? '+' : ''}$${p.totalEarnings.toFixed(0)} (${p.dailyWins}勝 ${p.dailyLosses}負)`;
-        }).join('\n');
-
-        const matchDetails = filteredMatches.map(m => {
-            const scoreStr = m.scores ? ` (${m.scores[0]}-${m.scores[1]})` : '';
-            return `• $${m.stake}${scoreStr} - Team ${(m.winnerTeam ?? 0) + 1} 勝`;
-        }).join('\n');
-
-        const report = `${title}\n${total}\n------------------\n*個人盈虧:*\n${playerStats}\n------------------\n*比賽詳情:*\n${matchDetails}\n------------------\n請收錢人核對，多謝合作！`;
+        const report = `🏐 *WAN CHAI VBC REPORT* (${dateStr})\n` +
+            `💰 *POOL: $${totalStake}*\n` +
+            `------------------\n` +
+            playersWithDailyStats.map(p => {
+                const signal = p.totalEarnings >= 0 ? '🟢' : '🔴';
+                return `${signal} *${p.name}*: ${p.totalEarnings >= 0 ? '+' : ''}$${p.totalEarnings.toFixed(0)} (${p.dailyWins}W ${p.dailyLosses}L)`;
+            }).join('\n') +
+            `\n------------------\nVerified athlete performance record.`;
 
         navigator.clipboard.writeText(report).then(() => {
             setIsCopied(true);
@@ -95,149 +75,116 @@ export default function DailyReport({ players, matches }) {
     };
 
     return (
-        <div className="space-y-6 pb-24 text-white">
-            <header className="space-y-4">
+        <div className="space-y-8 pb-32 text-white">
+            <header className="flex flex-col gap-6">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-3xl font-black italic tracking-tighter uppercase">數據 <span className="text-emerald-400">結算</span></h2>
-                    <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10">
-                        <button
-                            onClick={() => setViewMode('daily')}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${viewMode === 'daily' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-gray-500 hover:text-gray-300'}`}
-                        >
-                            按日
-                        </button>
-                        <button
-                            onClick={() => setViewMode('monthly')}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${viewMode === 'monthly' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-gray-500 hover:text-gray-300'}`}
-                        >
-                            按月
-                        </button>
+                    <h2 className="font-display text-4xl tracking-wide uppercase" style={{fontFamily:"'Bebas Neue', sans-serif"}}>
+                        OFFICIAL <span style={{color: '#FF4500'}}>REPORT</span>
+                    </h2>
+                    <div className="flex gap-1.5 p-1 rounded-xl" style={{background: '#111', border: '1px solid #222'}}>
+                        {['daily', 'monthly'].map(m => (
+                            <button key={m} onClick={() => setViewMode(m)} 
+                                className="px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
+                                style={viewMode === m ? {background: '#FF4500', color: '#fff'} : {color: '#555'}}>
+                                {m}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
-                {viewMode === 'daily' && (
-                    <div className="flex items-center justify-between p-4 glass rounded-[32px] border border-white/5 bg-white/2">
-                        <button onClick={() => navigateDay(-1)} className="p-2 hover:bg-white/5 rounded-full transition-colors">
-                            <ChevronLeft className="w-5 h-5 text-emerald-400" />
-                        </button>
-                        <div className="text-center">
-                            <p className="text-sm font-black italic tracking-tighter uppercase text-white">
-                                {isToday(selectedDate) ? '今日 ' : ''}{format(selectedDate, 'yyyy年 M月 d日', { locale: zhHK })}
-                            </p>
-                            <p className="text-[8px] font-bold text-gray-600 uppercase tracking-[0.2em] mt-0.5">歷史紀錄瀏覽</p>
-                        </div>
-                        <button onClick={() => navigateDay(1)} className="p-2 hover:bg-white/5 rounded-full transition-colors">
-                            <ChevronRight className="w-5 h-5 text-emerald-400" />
-                        </button>
+                <div className="flex items-center justify-between p-6 rounded-3xl relative overflow-hidden" 
+                    style={{background: '#111', border: '1px solid #222'}}>
+                    <div className="absolute top-0 right-0 w-32 h-full opacity-5 transform translate-x-10 -skew-x-12" style={{background: '#FF4500'}} />
+                    <button onClick={() => viewMode === 'daily' ? navigateDay(-1) : navigateMonth(-1)} 
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#1a1a1a] border border-[#222]">
+                        <ChevronLeft className="w-5 h-5 text-[#FF4500]" />
+                    </button>
+                    <div className="text-center relative z-10">
+                        <p className="font-display text-2xl tracking-wide uppercase">
+                            {viewMode === 'daily' 
+                                ? (isToday(selectedDate) ? 'WATCH: TODAY' : format(selectedDate, 'MMM d, yyyy'))
+                                : format(currentMonth, 'MMMM yyyy')}
+                        </p>
+                        <p className="text-[7px] font-black uppercase tracking-[0.4em] mt-1" style={{color: '#444'}}>TIME-SERIES DATA</p>
                     </div>
-                )}
-
-                {viewMode === 'monthly' && (
-                    <div className="flex items-center justify-between p-4 glass rounded-[32px] border border-white/5 bg-white/2">
-                        <button onClick={() => navigateMonth(-1)} className="p-2 hover:bg-white/5 rounded-full transition-colors">
-                            <ChevronLeft className="w-5 h-5 text-emerald-400" />
-                        </button>
-                        <div className="text-center">
-                            <p className="text-sm font-black italic tracking-tighter uppercase text-white">
-                                {format(currentMonth, 'yyyy年 MMMM', { locale: zhHK })}
-                            </p>
-                            <p className="text-[8px] font-bold text-gray-600 uppercase tracking-[0.2em] mt-0.5">歷史紀錄瀏覽</p>
-                        </div>
-                        <button onClick={() => navigateMonth(1)} className="p-2 hover:bg-white/5 rounded-full transition-colors">
-                            <ChevronRight className="w-5 h-5 text-emerald-400" />
-                        </button>
-                    </div>
-                )}
-
-                <div className="flex items-center justify-center gap-3 text-[10px] font-bold tracking-widest uppercase">
-                    <p className="text-blue-400 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" /> {viewMode === 'daily' ? 'Daily View' : 'Monthly View'}
-                    </p>
-                    <span className="text-gray-800">|</span>
-                    <p className="text-yellow-500 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> 香港時間 HKT
-                    </p>
+                    <button onClick={() => viewMode === 'daily' ? navigateDay(1) : navigateMonth(1)}
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#1a1a1a] border border-[#222]">
+                        <ChevronRight className="w-5 h-5 text-[#FF4500]" />
+                    </button>
                 </div>
             </header>
 
-            {/* Main Stats Card */}
-            <div className="p-8 glass rounded-[40px] bg-emerald-500/10 border border-emerald-500/20 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-500">
-                    <DollarSign className="w-20 h-20" />
+            {/* Hero Stake Pool */}
+            <div className="relative p-8 rounded-[40px] overflow-hidden flex flex-col items-center text-center group" 
+                style={{background: 'linear-gradient(135deg, #111, #050505)', border: '1px solid #222'}}>
+                <div className="absolute top-0 left-0 w-full h-[2px]" style={{background: 'linear-gradient(90deg, #FF4500, transparent 80%)'}} />
+                <div className="absolute -bottom-10 -right-10 w-40 h-40 opacity-5" style={{background: '#FF4500', borderRadius: '50%', filter: 'blur(40px)'}} />
+                
+                <p className="text-[9px] font-black uppercase tracking-[0.3em] mb-4" style={{color: '#444'}}>
+                    TOTAL {viewMode === 'daily' ? 'DAILY' : 'MONTHLY'} STAKE POOL
+                </p>
+                <div className="flex items-baseline gap-2 mb-8">
+                    <span className="font-display text-7xl leading-none" style={{color: '#FF4500'}}>${totalStake}</span>
+                    <span className="text-xs font-black uppercase" style={{color: '#222'}}>HKD</span>
                 </div>
-                <div className="flex justify-between items-start relative z-10">
-                    <div>
-                        <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">
-                            {viewMode === 'daily' ? '今日' : '本月'}總結算金額 (POOL)
-                        </p>
-                        <p className="text-5xl font-black italic tracking-tighter">${totalStake}</p>
-                    </div>
-                    {viewMode === 'daily' && totalStake > 0 && (
-                        <button
-                            onClick={copyToWhatsApp}
-                            className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isCopied ? 'bg-emerald-500 text-white' : 'bg-white/10 text-emerald-400 hover:bg-emerald-500/20'}`}
-                        >
-                            {isCopied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                            {isCopied ? '已複製' : 'WhatsApp 結算'}
-                        </button>
-                    )}
-                </div>
-                <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-emerald-500/40 relative z-10 rotate-3 group-hover:rotate-6 transition-transform mt-4">
-                    <DollarSign className="w-10 h-10" />
-                </div>
+
+                {viewMode === 'daily' && totalStake > 0 && (
+                    <button onClick={copyToWhatsApp} 
+                        className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-display text-xl tracking-wide transition-all active:scale-95 ${isCopied ? 'bg-white text-black' : 'bg-[#FF4500] text-white shadow-2xl shadow-[#FF450044]'}`}>
+                        {isCopied ? <CheckCircle2 className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                        {isCopied ? 'COPIED TO CLIPBOARD' : 'SEND TO WHATSAPP'}
+                    </button>
+                )}
             </div>
 
             <section className="space-y-4">
-                <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-2 ml-1">
-                    {viewMode === 'daily' ? '今日個人盈虧' : '月度累計盈虧'}
-                </h3>
+                <div className="flex items-center justify-between px-2">
+                    <h3 className="text-[10px] font-black uppercase tracking-widest" style={{color: '#555'}}>PERFORMANCE BREAKDOWN</h3>
+                    <TrendingUp className="w-4 h-4 text-[#222]" />
+                </div>
                 <div className="space-y-3">
                     {playersWithDailyStats.map(p => (
-                        <div key={p.id} className="p-5 glass rounded-3xl flex items-center justify-between border border-white/5 hover:border-white/10 transition-all hover:bg-white/2 group">
-                            <div className="flex items-center gap-4">
-                                <PlayerIcon icon={p.icon} name={p.name} className="w-12 h-12" />
-                                <div>
-                                    <span className="text-lg font-black italic tracking-tighter uppercase">{p.name}</span>
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                        <p className="text-[8px] text-gray-600 font-bold uppercase tracking-widest">
-                                            {p.dailyWins}勝 {p.dailyLosses}負
-                                        </p>
-                                        <span className="text-gray-800 text-[8px]">•</span>
-                                         <p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">
-                                            {filteredMatches.filter(m => {
-                                                const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams || {}).sort().map(k => m.teams[k]);
-                                                return matchTeams.flat().some(tp => tp && tp.id === p.id);
-                                            }).length} games
-                                        </p>
+                        <div key={p.id} className="p-5 rounded-2xl flex items-center justify-between transition-all relative overflow-hidden group" 
+                            style={{background: '#111', border: '1px solid #1a1a1a'}}>
+                            <div className="flex items-center gap-4 relative z-10">
+                                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{background: '#050505', border: '1px solid #1a1a1a'}}>
+                                    <PlayerIcon icon={p.icon} name={p.name} className="w-8 h-8" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="font-display text-2xl tracking-wide uppercase leading-none">{p.name}</span>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <div className="flex gap-[3px]">
+                                            {Array.from({length: p.dailyWins}).map((_, i) => <div key={i} className="w-3 h-1 rounded-full" style={{background: '#FF4500'}} />)}
+                                            {Array.from({length: p.dailyLosses}).map((_, i) => <div key={i} className="w-3 h-1 rounded-full" style={{background: '#222'}} />)}
+                                        </div>
+                                        <span className="text-[8px] font-black uppercase tracking-widest" style={{color: '#444'}}>RECORD</span>
                                     </div>
                                 </div>
                             </div>
-                            <div className="text-right">
-                                <p className={`text-2xl font-black italic tracking-tighter ${p.totalEarnings >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            <div className="text-right relative z-10">
+                                <p className="font-display text-3xl leading-none" style={{color: p.totalEarnings >= 0 ? '#10b981' : '#ef4444'}}>
                                     {p.totalEarnings >= 0 ? `+$${p.totalEarnings.toFixed(0)}` : `-$${Math.abs(p.totalEarnings).toFixed(0)}`}
                                 </p>
-                                <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">
-                                    {viewMode === 'daily' ? '今日淨額' : '月度總額'}
-                                </p>
+                                <p className="text-[8px] font-black uppercase tracking-widest mt-1" style={{color: '#333'}}>NET CHANGE</p>
                             </div>
                         </div>
                     ))}
                     {filteredMatches.length === 0 && (
-                        <div className="p-20 text-center border-2 border-dashed border-white/5 rounded-[40px] bg-white/2">
-                            <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-800">
-                                <Filter className="w-8 h-8" />
-                            </div>
-                            <p className="text-gray-600 font-bold italic">此時段暫無比賽紀錄</p>
+                        <div className="p-20 text-center border-2 border-dashed border-[#1a1a1a] rounded-[40px] opacity-40">
+                             <TrendingUp className="w-12 h-12 mx-auto mb-4 text-[#111]" />
+                             <p className="font-display text-2xl uppercase tracking-widest text-[#222]">NO RECORDS FOUND</p>
                         </div>
                     )}
                 </div>
             </section>
 
-            <div className="p-6 glass rounded-[32px] text-[10px] text-gray-600 font-bold uppercase tracking-[0.2em] text-center bg-white/5 leading-relaxed border border-white/5">
-                請收錢人核對以上總數，確保金額正確。<br />
-                <span className="text-emerald-400/50">數據已透過 Firebase 即時同步至所有裝置。</span>
-            </div>
+            <footer className="pt-10 pb-10">
+                <div className="p-6 rounded-2xl text-[9px] font-black uppercase tracking-[0.3em] text-center leading-relaxed" 
+                    style={{background: '#0a0a0a', border: '1px solid #1a1a1a', color: '#222'}}>
+                    OFFICIAL WAN CHAI VBC LEDGER <br/>
+                    <span style={{color: '#FF45001a'}}>VERIFIED DATA STREAM</span>
+                </div>
+            </footer>
         </div>
     );
 }
-
