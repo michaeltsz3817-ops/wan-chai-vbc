@@ -2,69 +2,156 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+
 :root {
   color-scheme: dark;
   --accent: #FF4500;
-  --accent-dim: #FF450022;
-  --card: #111111;
-  --border: #222222;
+  --accent-hot: #FF6B00;
+  --accent-dim: rgba(255,69,0,0.12);
+  --accent-glow: rgba(255,69,0,0.25);
+  --gold: #F5A623;
+  --silver: #A0A8B4;
+  --bronze: #CD7F32;
+  --emerald: #10B981;
+  --card: #0E0E0F;
+  --card-2: #141416;
+  --border: rgba(255,255,255,0.07);
+  --border-hot: rgba(255,69,0,0.3);
+  --text-muted: #555;
+  --text-dim: #888;
 }
+
+* { box-sizing: border-box; }
 
 body {
-  background: #050505;
+  background: #070709;
   color: #ffffff;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Syne', sans-serif;
   -webkit-tap-highlight-color: transparent;
-  -webkit-font-smoothing: antialiased;
+  -webkit-fe0,0.3);
 }
 
-/* Sports brand card */
-.glass {
-  background: #111111;
-  border: 1px solid #222222;
-}
-
-/* Bebas Neue heading */
-.font-display {
-  font-family: 'Bebas Neue', sans-serif;
-  letter-spacing: 0.04em;
-}
-
-/* Orange accent bar (diagonal) */
-.accent-bar {
-  background: linear-gradient(135deg, #FF4500 0%, #FF6A00 100%);
-}
-
-/* Win rate bar pulse */
-@keyframes bar-fill {
-  from { width: 0%; }
-}
-
-/* Subtle grid background */
-.grid-bg {
-  background-image:
-    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-
-/* Rank number style */
-.rank-badge-1 { background: #F59E0B; color: #000; }
-.rank-badge-2 { background: #9CA3AF; color: #000; }
-.rank-badge-3 { background: #B45309; color: #fff; }
-
-/* Diagonal slash BG for team cards */
+/* ─── TEAM SLASHES ───────────────────────── */
 .team-slash-blue {
-  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a5f 100%);
+  background: linear-gradient(135deg, #1a3fa3 0%, #0f1f52 100%);
+  border: 1px solid rgba(26,63,163,0.4);
 }
 .team-slash-orange {
-  background: linear-gradient(135deg, #FF4500 0%, #7c2900 100%);
+  background: linear-gradient(135deg, #c93500 0%, #6b1a00 100%);
+  border: 1px solid rgba(201,53,0,0.4);
 }
 .team-slash-purple {
-  background: linear-gradient(135deg, #7c3aed 0%, #3b1872 100%);
+  background: linear-gradient(135deg, #6d28d9 0%, #33125f 100%);
+  border: 1px solid rgba(109,40,217,0.4);
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: #111; }
-::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+/* ─── WIN BAR ────────────────────────────── */
+.win-bar {
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-hot));
+  box-shadow: 0 0 12px rgba(255,69,0,0.5);
+  animation: bar-expand 1s cubic-bezier(0.4,0,0.2,1) both;
+}
+@keyframes bar-expand {
+  from { width: 0; opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ─── HOT STREAK PULSE ───────────────────── */
+@keyframes hot-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,69,0,0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(255,69,0,0); }
+}
+.hot-pulse { animation: hot-pulse 2s ease-in-out infinite; }
+
+/* ─── SHIMMER ────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2.5s ease-in-out infinite;
+}
+
+/* ─── SCROLLBAR ──────────────────────────── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 4px; }
+
+/* ─── LIVE DOT ───────────────────────────── */
+@keyframes live-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.live-dot { animation: live-blink 1.5s ease-in-out infinite; }
+
+/* ─── ACCENT DIVIDER ─────────────────────── */
+.accent-divider {
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent) 0%, rgba(255,69,0,0.3) 40%, transparent 100%);
+}
+
+/* ─── BUTTON BASE ────────────────────────── */
+.btn-primary {
+  background: linear-gradient(135deg, #FF4500, #FF6B00);
+  color: white;
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  box-shadow: 0 8px 32px rgba(255,69,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+  transition: all 0.2s;
+}
+.btn-primary:active { transform: scale(0.97); box-shadow: 0 4px 16px rgba(255,69,0,0.2); }
+
+.btn-ghost {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #aaa;
+  transition: all 0.2s;
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.08); color: white; }
+
+/* ─── PLAYER CARD ────────────────────────── */
+.player-card {
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.player-card:hover {
+  border-color: rgba(255,69,0,0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,69,0,0.1);
+}
+
+/* ─── MATCH CARD ─────────────────────────── */
+.match-card {
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  transition: border-color 0.2s;
+}
+.match-card:hover { border-color: rgba(255,255,255,0.12); }
+
+/* ─── EMERALD CHECK-IN ───────────────────── */
+.checkin-active {
+  background: rgba(16,185,129,0.1);
+  border: 1px solid rgba(16,185,129,0.35);
+  box-shadow: 0 0 20px rgba(16,185,129,0.06);
+}
+.checkin-inactive {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid transparent;
+  filter: grayscale(1) brightness(0.4);
+  opacity: 0.45;
+}
+
+/* ─── SECTION LABEL ──────────────────────── */
+.section-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
