@@ -1,4 +1,4 @@
- import React, { useState, useEffect, useMemo } from 'react';
+   import React, { useState, useEffect, useMemo } from 'react';
 import { Trophy, Users, History, DollarSign, Plus, LayoutDashboard, Trash2, ShieldCheck, Flame, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
