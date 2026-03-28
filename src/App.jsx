@@ -13,7 +13,7 @@ import { Dock } from './components/ui/dock-two';
 import { db, doc, onSnapshot, setDoc } from './lib/firebase';
 import { DEFAULT_SKILLS } from './lib/constants';
 
-// â”€â”€â”€ PAGE TRANSITION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PAGE TRANSITION ──────────────────────────────
 const pageVariants = {
   initial: { opacity: 0, y: 16, filter: 'blur(4px)' },
   animate: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.3, ease: [0.4,0,0.2,1] } },
@@ -34,11 +34,11 @@ function App() {
       const saved = localStorage.getItem('vbc-players') || localStorage.getItem('vbc_players');
       const parsed = saved ? JSON.parse(saved) : null;
       return (Array.isArray(parsed) ? parsed.filter(Boolean) : null) || [
-        { id: '1', name: 'é˜¿å¼·', icon: 'ðŸ”¥', skill: 5, skills: { ...DEFAULT_SKILLS, atk: 5, pwr: 4 } },
-        { id: '2', name: 'å°æ˜Ž', icon: 'ðŸ¦', skill: 2, skills: { ...DEFAULT_SKILLS, def: 3 } },
-        { id: '3', name: 'å¤§å¸«å…„', icon: 'âš¡ï¸', skill: 4, skills: { ...DEFAULT_SKILLS, atk: 4, srv: 4 } },
-        { id: '4', name: 'æ³¢å­', icon: 'ðŸ§¤', skill: 3, skills: { ...DEFAULT_SKILLS, set: 4 } },
-        { id: '5', name: 'é˜¿é£›', icon: 'ðŸ¦…', skill: 4, skills: { ...DEFAULT_SKILLS, blk: 4 } },
+        { id: '1', name: '阿強', icon: '🔥', skill: 5, skills: { ...DEFAULT_SKILLS, atk: 5, pwr: 4 } },
+        { id: '2', name: '小明', icon: '🦁', skill: 2, skills: { ...DEFAULT_SKILLS, def: 3 } },
+        { id: '3', name: '大師兄', icon: '⚡️', skill: 4, skills: { ...DEFAULT_SKILLS, atk: 4, srv: 4 } },
+        { id: '4', name: '波子', icon: '🧤', skill: 3, skills: { ...DEFAULT_SKILLS, set: 4 } },
+        { id: '5', name: '阿飛', icon: '🦅', skill: 4, skills: { ...DEFAULT_SKILLS, blk: 4 } },
       ];
     } catch (e) { return []; }
   });
@@ -64,7 +64,7 @@ function App() {
   const [syncStatus, setSyncStatus] = useState('idle');
   const [syncError, setSyncError] = useState(null);
 
-  // â”€â”€â”€ FIREBASE SYNC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── FIREBASE SYNC ────────────────────────────
   useEffect(() => {
     setSyncStatus('syncing');
     const unsubPlayers = onSnapshot(doc(db, 'vbc', 'players'), (snap) => {
@@ -127,7 +127,7 @@ function App() {
       setSyncStatus('success');
     } catch (error) {
       setSyncStatus('error'); setSyncError(error.message);
-      if (error.code === 'permission-denied') alert('Firebase æ¬Šé™ä¸è¶³ï¼è«‹ç¢ºä¿æ•¸æ“šåº«è¦å‰‡å·²è¨­ç½®ç‚ºå…è¨±è®€å¯«ã€‚');
+      if (error.code === 'permission-denied') alert('Firebase 權限不足！請確保數據庫規則已設置為允許讀寫。');
     }
   };
 
@@ -149,7 +149,7 @@ function App() {
   const deletePlayer = (id)        => { const l = players.filter(p => p.id !== id); setPlayers(l); updatePlayersFirebase(l); };
   const updatePlayer = (id, upd)   => { const l = players.map(p => p.id === id ? { ...p, ...upd } : p); setPlayers(l); updatePlayersFirebase(l); };
   const deleteMatch  = (id)        => {
-    if (window.confirm('ç¢ºå®šè¦åˆªé™¤é€™å ´æ¯”è³½ç´€éŒ„å—Žï¼Ÿ')) {
+    if (window.confirm('確定要刪除這場比賽紀錄錄嗎？')) {
       const l = matches.filter(m => m.id !== id); setMatches(l); updateMatchesFirebase(l);
     }
   };
@@ -205,7 +205,7 @@ function App() {
   };
 
   const resetTeams = () => {
-    if (window.confirm('ç¢ºå®šè¦è§£æ•£ç›®å‰çš„éšŠä¼ä¸¦é‡æ–°æŠ½ç±¤å—Žï¼Ÿ')) {
+    if (window.confirm('確定要解散目前的隊伍並重新抽籤嗎？')) {
       setTeams([]); setGameStep(0); setG1WinnerIdx(null);
       updateGameStateFirebase([], 0, null); setActiveTab('teaming');
     }
@@ -217,7 +217,7 @@ function App() {
   };
   const resetAttendance   = ()  => { setPresentPlayerIds([]); setIsAttendanceConfirmed(false); updateAttendanceFirebase([], false); };
   const confirmAttendance = ()  => { if (presentPlayerIds.length >= 2) { setIsAttendanceConfirmed(true); updateAttendanceFirebase(presentPlayerIds, true); } };
-  const resetAllStats     = ()  => { if (window.confirm('ðŸš¨ è­¦å‘Šï¼šé€™å°‡æœƒåˆªé™¤æ‰€æœ‰å…§å®¹ï¼ˆåŒ…æ‹¬éšŠå“¡å’Œç´€éŒ„ï¼‰ï¼Œé‡æ­¸é›¶é»žã€‚ç¢ºå®šå—Žï¼Ÿ')) { localStorage.clear(); window.location.reload(); } };
+  const resetAllStats     = ()  => { if (window.confirm('🚨 警告：這將會刪除所有內容（包括隊員和紀錄錄），重歸零點。確定嗎？')) { localStorage.clear(); window.location.reload(); } };
 
   const exportData = () => {
     const data = { players, matches, presentPlayerIds, version: '1.0', timestamp: new Date().toISOString() };
@@ -234,19 +234,19 @@ function App() {
       try {
         const data = JSON.parse(ev.target.result);
         if (data.players && Array.isArray(data.players)) {
-          if (window.confirm('ç¢ºå®šè¦åŒ¯å…¥æ•¸æ“šå—Žï¼Ÿé€™å°‡æœƒè¦†è“‹ç›®å‰çš„é€²åº¦ã€‚')) {
+          if (window.confirm('確定要匯入數據嗎？這將會覆蓋目前的進度。')) {
             setPlayers(data.players);
             if (data.matches) setMatches(data.matches);
             if (data.presentPlayerIds) setPresentPlayerIds(data.presentPlayerIds);
-            alert('æ•¸æ“šåŒ¯å…¥æˆåŠŸï¼');
+            alert('數據匯入成功！');
           }
-        } else alert('ç„¡æ•ˆçš„æ•¸æ“šæ ¼å¼');
-      } catch (err) { alert('åŒ¯å…¥å¤±æ•—ï¼š' + err.message); }
+        } else alert('無效的數據格式');
+      } catch (err) { alert('匯入失敗：' + err.message); }
     };
     reader.readAsText(file);
   };
 
-  // â”€â”€â”€ SYNC BADGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── SYNC BADGE ──────────────────────────────
   const SyncBadge = () => (
     <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all ${
       syncStatus === 'syncing' ? 'border-blue-500/30 text-blue-400 bg-blue-500/5' :
@@ -264,7 +264,7 @@ function App() {
   return (
     <div className="min-h-screen text-white pb-32 overflow-x-hidden grid-bg">
 
-      {/* â”€â”€â”€ AMBIENT GLOWS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── AMBIENT GLOWS ─────────────────── */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-20"
           style={{ background: 'radial-gradient(circle, rgba(255,69,0,0.15) 0%, transparent 70%)' }} />
@@ -272,7 +272,7 @@ function App() {
           style={{ background: 'radial-gradient(circle, rgba(255,107,0,0.2) 0%, transparent 70%)' }} />
       </div>
 
-      {/* â”€â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── HEADER ────────────────────────── */}
       <header className="sticky top-0 z-[60]" style={{ background: 'rgba(7,7,9,0.92)', backdropFilter: 'blur(24px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         {/* Top accent line */}
         <div className="h-[2px] w-full" style={{ background: 'linear-gradient(90deg, #FF4500 0%, #FF6B00 30%, rgba(255,107,0,0.2) 70%, transparent 100%)' }} />
@@ -289,7 +289,7 @@ function App() {
               <h1 className="font-display text-[26px] leading-none tracking-widest">
                 WAN CHAI <span style={{ color: '#FF4500' }}>VBC</span>
               </h1>
-              <p className="section-label" style={{ letterSpacing: '0.25em' }}>Volleyball Club Â· ç£ä»”æŽ’çƒ</p>
+              <p className="section-label" style={{ letterSpacing: '0.25em' }}>Volleyball Club · 灣仔排球</p>
             </div>
           </div>
 
@@ -308,16 +308,16 @@ function App() {
         </div>
       </header>
 
-      {/* â”€â”€â”€ SYNC ERROR BANNER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── SYNC ERROR BANNER ─────────────── */}
       {syncStatus === 'error' && (
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
           className="max-w-lg mx-auto mx-4 mt-4 p-4 rounded-2xl text-[10px] font-bold text-red-200 uppercase tracking-wider text-center"
           style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
-          âš ï¸ Firebase Sync Error: {syncError || 'Check Database Rules'}
+          ⚠️ Firebase Sync Error: {syncError || 'Check Database Rules'}
         </motion.div>
       )}
 
-      {/* â”€â”€â”€ MAIN CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── MAIN CONTENT ──────────────────── */}
       <main className="max-w-lg p-4 mx-auto relative z-10">
         <AnimatePresence mode="wait">
 
@@ -328,7 +328,7 @@ function App() {
                 <button
                   onClick={() => { setIsManualEntry(true); setActiveTab('play'); }}
                   className="btn-ghost flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest">
-                  <Plus className="w-3.5 h-3.5" />è£œå…¥æˆ°ç¸¾
+                  <Plus className="w-3.5 h-3.5" />補入戰績
                 </button>
               </div>
               <StatsHub players={playersWithStats || []} matches={matches || []} onSelectPlayer={setSelectedProfile} />
@@ -342,9 +342,9 @@ function App() {
                 <section className="space-y-6">
                   <div className="space-y-1">
                     <h2 className="font-display text-4xl tracking-widest">
-                      ä»Šæ—¥ <span style={{ color: '#10B981' }}>CHECK-IN</span>
+                      今日 <span style={{ color: '#10B981' }}>CHECK-IN</span>
                     </h2>
-                    <p className="section-label">è«‹é¸æ“‡ä»Šæ—¥åˆ°å ´æˆå“¡</p>
+                    <p className="section-label">請選擇今日到場成員</p>
                   </div>
 
                   <div className="grid grid-cols-4 gap-3">
@@ -355,7 +355,7 @@ function App() {
                         <div className="w-10 h-10 flex items-center justify-center">
                           {p.icon?.startsWith('data:image')
                             ? <img src={p.icon} alt={p.name} className="w-full h-full object-cover rounded-xl" />
-                            : <span className="text-2xl">{p.icon || 'ðŸ'}</span>}
+                            : <span className="text-2xl">{p.icon || '🏐'}</span>}
                         </div>
                         <span className="text-[9px] font-black truncate w-full text-center uppercase tracking-tight">{p.name}</span>
                       </motion.button>
@@ -368,7 +368,7 @@ function App() {
                     onClick={confirmAttendance}
                     className="w-full py-5 rounded-[28px] font-black text-xl tracking-tight uppercase disabled:opacity-30 transition-all"
                     style={{ background: 'linear-gradient(135deg,#10B981,#059669)', boxShadow: '0 8px 32px rgba(16,185,129,0.3)' }}>
-                    ç¢ºèªåå–® ({presentPlayerIds.length})
+                    確認名單 ({presentPlayerIds.length})
                   </motion.button>
                 </section>
               ) : (
@@ -421,15 +421,15 @@ function App() {
                     </div>
                   </div>
                   <div>
-                    <p className="font-display text-2xl tracking-widest text-gray-600">å°šæœªç”ŸæˆéšŠä¼</p>
-                    <p className="section-label mt-1">è«‹å…ˆå®Œæˆé»žåä¸¦åˆ†é…éšŠä¼</p>
+                    <p className="font-display text-2xl tracking-widest text-gray-600">尚未生成隊伍</p>
+                    <p className="section-label mt-1">請先完成點名並分配隊伍</p>
                   </div>
                   <div className="flex flex-col gap-3 max-w[220px] mx-auto">
                     <button onClick={() => setActiveTab('teaming')} className="btn-primary px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest">
-                      å‰å¾€çµ„éšŠë§é 
+                      前往組隊링頁
                     </button>
                     <button onClick={() => setIsManualEntry(true)} className="btn-ghost px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest">
-                      æ‰‹å‹•è£œå…¥æˆ°ç¸¾
+                      手動補入戰績
                     </button>
                   </div>
                 </motion.div>
@@ -452,11 +452,11 @@ function App() {
                 onAdd={addPlayer} onDelete={deletePlayer} onUpdate={updatePlayer}
                 onResetAll={resetAllStats} onExport={exportData} onImport={importData}
                 onPushToCloud={() => {
-                  if (window.confirm('ç¡ºåºšè¦åƒ³å……å¥¸é“šå‡³ç®¡çš„æ‰€æœŸæ•¸æ“šä¸ªå‚³åb,ç²îéœè¡Œå·æ‰€æ“šå¤¸åˆ¶è¡Œå·çŽ©çš„æ•¸æ“šã€‚')) {
+                  if (window.confirm('硺庚規僳充奸铚凳管的所期數據个傳�b,��霁行号所據夸制行号玩的數據。')) {
                     updatePlayersFirebase(players); updateMatchesFirebase(matches);
                     updateAttendanceFirebase(presentPlayerIds, isAttendanceConfirmed);
                     updateGameStateFirebase(teams, gameStep, g1WinnerIdx, restingPlayers);
-                    alert('æ•¸æ“šå·²ä¸Šå‚³å·²ä¸Šç›´ç´©ï¼');
+                    alert('數據已上傳已上直紩！');
                   }
                 }}
                 isAdmin={isAdmin}
@@ -469,8 +469,8 @@ function App() {
             <motion.div key="history" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="space-y-5 pb-20">
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <h2 className="font-display text-4xl tracking-widest">æ­·é² <span style={{ color: '#FF4500' }}>å°ä»—</span></h2>
-                  <p className="section-label mt-0.5">{matches.length} å ´æ¯”è³½ç´€éŒ„</p>
+                  <h2 className="font-display text-4xl tracking-widest">歷鏲 <span style={{ color: '#FF4500' }}>對仗</span></h2>
+                  <p className="section-label mt-0.5">{matches.length} 場比賽紀錄錄</p>
                 </div>
                 <div className="text-right">
                   <div className="font-display text-3xl" style={{ color: '#FF4500' }}>
@@ -514,7 +514,7 @@ function App() {
                             <div className="px-3 py-1.5 rounded-xl"
                               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
                               <span className="font-display text-lg tracking-widest text-white">
-                                {m.scores[0]}<span className="text-gray-600 mx-1">â€”</span>{m.scores[1]}
+                                {m.scores[0]}<span className="text-gray-600 mx-1">—</span>{m.scores[1]}
                               </span>
                             </div>
                           )}
@@ -569,7 +569,7 @@ function App() {
                 {matches.length === 0 && (
                   <div className="text-center py-16 space-y-3">
                     <History className="w-10 h-10 mx-auto" style={{ color: '#2a2a2a' }} />
-                    <p className="section-label">æš¿ç„¡æ¯”è³¿ç´€è!„</p>
+                    <p className="section-label">暿無比賿紀錄</p>
                   </div>
                 )}
               </div>
@@ -578,7 +578,7 @@ function App() {
         </AnimatePresence>
       </main>
 
-      {/* â”€â”€â”€ PLAYER PROFILE MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── PLAYER PROFILE MODAL ──────────── */}
       <AnimatePresence>
         {selectedProfile && (
           <PlayerProfile
@@ -590,15 +590,15 @@ function App() {
         )}
       </AnimatePresence>
 
-      {/* â”€â”€â”€ DOCK â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── DOCK ───────────────────────────── */}
       <Dock
         items={[
-          { active: activeTab === 'dashboard',   onClick: () => setActiveTab('dashboard'),   icon: LayoutDashboard, label: 'ç¸½è¦½' },
-          { active: activeTab === 'teaming',     onClick: () => setActiveTab('teaming'),     icon: Users,           label: 'çµ„éªŠ' },
-          { type: 'special',                     onClick: () => setActiveTab('play'),         icon: Plus,            label: 'æ¯”è³½' },
-          { active: activeTab === 'history',     onClick: () => setActiveTab('history'),     icon: History,         label: 'ç´€è!„' },
-          { active: activeTab === 'settlement',  onClick: () => setActiveTab('settlement'),  icon: DollarSign,      label: 'çµç®—' },
-          { active: activeTab === 'players',     onClick: () => setActiveTab('players'),     icon: Trophy,          label: 'æˆå“¡' },
+          { active: activeTab === 'dashboard',   onClick: () => setActiveTab('dashboard'),   icon: LayoutDashboard, label: '總覽' },
+          { active: activeTab === 'teaming',     onClick: () => setActiveTab('teaming'),     icon: Users,           label: '組隊' },
+          { type: 'special',                     onClick: () => setActiveTab('play'),         icon: Plus,            label: '比賽' },
+          { active: activeTab === 'history',     onClick: () => setActiveTab('history'),     icon: History,         label: '紀錄' },
+          { active: activeTab === 'settlement',  onClick: () => setActiveTab('settlement'),  icon: DollarSign,      label: '結算' },
+          { active: activeTab === 'players',     onClick: () => setActiveTab('players'),     icon: Trophy,          label: '成員' },
         ]}
       />
     </div>
