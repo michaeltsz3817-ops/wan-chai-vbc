@@ -149,7 +149,7 @@ function App() {
   const deletePlayer = (id)        => { const l = players.filter(p => p.id !== id); setPlayers(l); updatePlayersFirebase(l); };
   const updatePlayer = (id, upd)   => { const l = players.map(p => p.id === id ? { ...p, ...upd } : p); setPlayers(l); updatePlayersFirebase(l); };
   const deleteMatch  = (id)        => {
-    if (window.confirm('確定要刪除這場比賽紀錄錄嗎？')) {
+    if (window.confirm('確定要刪除這場比賽紀錄嗎？')) {
       const l = matches.filter(m => m.id !== id); setMatches(l); updateMatchesFirebase(l);
     }
   };
@@ -217,7 +217,7 @@ function App() {
   };
   const resetAttendance   = ()  => { setPresentPlayerIds([]); setIsAttendanceConfirmed(false); updateAttendanceFirebase([], false); };
   const confirmAttendance = ()  => { if (presentPlayerIds.length >= 2) { setIsAttendanceConfirmed(true); updateAttendanceFirebase(presentPlayerIds, true); } };
-  const resetAllStats     = ()  => { if (window.confirm('🚨 警告：這將會刪除所有內容（包括隊員和紀錄錄），重歸零點。確定嗎？')) { localStorage.clear(); window.location.reload(); } };
+  const resetAllStats     = ()  => { if (window.confirm('🚨 警告：這將會刪除所有內容（包括隊員和紀錄），重歸零點。確定嗎？')) { localStorage.clear(); window.location.reload(); } };
 
   const exportData = () => {
     const data = { players, matches, presentPlayerIds, version: '1.0', timestamp: new Date().toISOString() };
@@ -470,7 +470,7 @@ function App() {
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <h2 className="font-display text-4xl tracking-widest">歷鏲 <span style={{ color: '#FF4500' }}>對仗</span></h2>
-                  <p className="section-label mt-0.5">{matches.length} 場比賽紀錄錄</p>
+                  <p className="section-label mt-0.5">{matches.length} 場比賽紀錄</p>
                 </div>
                 <div className="text-right">
                   <div className="font-display text-3xl" style={{ color: '#FF4500' }}>
