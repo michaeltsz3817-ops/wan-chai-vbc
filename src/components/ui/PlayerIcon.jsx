@@ -1,3 +1,4 @@
+import React from 'react';
 import { ROLES } from '../../lib/constants';
 
 const PlayerIcon = ({ icon, name, role, isHot, isGoat, isCold, className = "w-6 h-6" }) => {
