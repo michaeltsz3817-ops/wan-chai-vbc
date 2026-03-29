@@ -31,3 +31,5 @@ export const ACHIEVEMENTS = [
     { id: 'unbeaten5', name: '鐵壁', icon: '🛡️', desc: '連續 5 場不敗', check: (p) => (p.bestStreak || 0) >= 5 },
     { id: 'matches50', name: '老兵', icon: '🎖️', desc: '累計出場 50 場', check: (p) => (p.totalMatches || 0) >= 50 },
 ];
+
+export const EXCLUSION_PAIRS = [['13868', '17890']];

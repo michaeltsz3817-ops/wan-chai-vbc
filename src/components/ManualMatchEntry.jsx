@@ -79,7 +79,7 @@ export default function ManualMatchEntry({ players, onComplete, onCancel }) {
                         </button>
                     </div>
                     <div className="space-y-2 min-h-[120px]">
-                        {teamA.map(p => (
+                        {(teamA || []).map(p => (
                             <div key={p.id} className="flex items-center justify-between bg-[#050505] p-2.5 rounded-xl border border-[#1a1a1a]">
                                 <div className="flex items-center gap-2">
                                     <PlayerIcon icon={p.icon} name={p.name} className="w-5 h-5" />

@@ -1,4 +1,4 @@
-x   import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Trophy, Users, History, DollarSign, Plus, LayoutDashboard, Trash2, ShieldCheck, Flame, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -139,8 +139,8 @@ function App() {
     if (Array.isArray(newTeams)) newTeams.forEach((t, i) => { teamsObj[`team${i}`] = t; });
     syncToFirebase('gamestate', {
       teamsObj,
-      resting: newResting !== undefined ? newResting : restingPlayers,
-      gameStep: newStep !== undefined ? newStep : gameStep,
+      resting: newResting || restingPlayers,
+      gameStep: newStep ?? gameStep,
       g1WinnerIdx: newWinner !== undefined ? newWinner : g1WinnerIdx,
     });
   };
@@ -162,7 +162,7 @@ function App() {
       const sortedMatches = [...(matches || [])].filter(m => m && m.date).sort((a, b) => new Date(a.date) - new Date(b.date));
       sortedMatches.forEach(m => {
         if (!m || !m.teams) return;
-        const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams).sort().map(k => m.teams[k]);
+        const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams || {}).sort().map(k => (m.teams || {})[k]);
         const winnerIdx = m.absoluteWinnerIdx !== undefined ? m.absoluteWinnerIdx : m.winnerTeam;
         const winnerTeam = matchTeams[winnerIdx];
         if (!winnerTeam) return;
@@ -289,7 +289,7 @@ function App() {
               <h1 className="font-display text-[26px] leading-none tracking-widest">
                 WAN CHAI <span style={{ color: '#FF4500' }}>VBC</span>
               </h1>
-              <p className="section-label" style={{ letterSpacing: '0.25em' }}>Volleyball Club · 灣仔排球</p>
+              <p className="section-label" style={{ letterSpacing: '0.25em' }}>Volleyball Club · 灣仔排球 · <span style={{color:'#FF4500', opacity:0.8}}>v2.4-PREMIUM-VISUALS</span></p>
             </div>
           </div>
 
@@ -348,7 +348,7 @@ function App() {
                   </div>
 
                   <div className="grid grid-cols-4 gap-3">
-                    {[...playersWithStats].sort((a, b) => a.name.localeCompare(b.name, 'zh-HK')).map(p => (
+                    {([...(playersWithStats || [])].sort((a, b) => a.name.localeCompare(b.name, 'zh-HK')) || []).map(p => (
                       <motion.button key={p.id} whileTap={{ scale: 0.93 }}
                         onClick={() => togglePresence(p.id)}
                         className={`flex flex-col items-center gap-2 p-3 rounded-2xl transition-all ${presentPlayerIds.includes(p.id) ? 'checkin-active' : 'checkin-inactive'}`}>
@@ -377,8 +377,11 @@ function App() {
                   teams={teams || []}
                   restingPlayers={restingPlayers || []}
                   setTeams={(newTeams, newResting = restingPlayers) => {
-                    setTeams(newTeams); setRestingPlayers(newResting);
-                    updateGameStateFirebase(newTeams, gameStep, g1WinnerIdx, newResting);
+                    setTeams(newTeams); 
+                    setRestingPlayers(newResting);
+                    setGameStep(0);
+                    setG1WinnerIdx(null);
+                    updateGameStateFirebase(newTeams, 0, null, newResting);
                   }}
                   onReset={resetTeams}
                   onGenerateComplete={() => setActiveTab('play')}
@@ -601,6 +604,25 @@ function App() {
           { active: activeTab === 'players',     onClick: () => setActiveTab('players'),     icon: Trophy,          label: '成員' },
         ]}
       />
+      {/* Inject Global Styles for Glow and Animations */}
+      <style>{`
+        @keyframes fire-glow {
+          0% { box-shadow: 0 0 5px rgba(255, 69, 0, 0.4), inset 0 0 5px rgba(255, 69, 0, 0.2); border-color: rgba(255, 69, 0, 0.6); }
+          50% { box-shadow: 0 0 20px rgba(255, 69, 0, 0.8), inset 0 0 10px rgba(255, 69, 0, 0.4); border-color: rgba(255, 120, 0, 1); }
+          100% { box-shadow: 0 0 5px rgba(255, 69, 0, 0.4), inset 0 0 5px rgba(255, 69, 0, 0.2); border-color: rgba(255, 69, 0, 0.6); }
+        }
+        .on-fire-glow {
+          animation: fire-glow 2s infinite ease-in-out;
+          border-width: 2px !important;
+        }
+        .vbc-card {
+          backdrop-filter: blur(20px) saturate(180%);
+          background: rgba(17, 17, 17, 0.7);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          position: relative;
+          overflow: hidden;
+        }
+      `}</style>
     </div>
   );
 }

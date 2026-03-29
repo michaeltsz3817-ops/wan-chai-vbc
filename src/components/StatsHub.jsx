@@ -59,8 +59,8 @@ export default function StatsHub({ players, matches, onSelectPlayer }) {
             let dateStr;
             try { dateStr = format(parseISO(m.date), 'MM/dd'); } catch { dateStr = '?'; }
             const entry = { name: dateStr };
-            const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams || {}).sort().map(k => m.teams[k]);
-            players.forEach(p => {
+            const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams || {}).sort().map(k => (m.teams || {})[k]);
+            (players || []).forEach(p => {
                 if (!topIds.includes(p.id)) return;
                 if (cumDrinks[p.id] === undefined) { cumDrinks[p.id] = 0; cumWins[p.id] = 0; cumMatches[p.id] = 0; }
                 const wasInWinner = matchTeams[m.winnerTeam]?.some(wp => wp.id === p.id);
@@ -68,11 +68,38 @@ export default function StatsHub({ players, matches, onSelectPlayer }) {
                 if (wasInWinner) { cumDrinks[p.id]++; cumWins[p.id]++; cumMatches[p.id]++; }
                 else if (wasInLoser) { cumDrinks[p.id]--; cumMatches[p.id]++; }
                 entry[`${p.name}_drinks`] = cumDrinks[p.id];
-                entry[`${p.name}_winRate`] = cumMatches[p.id] > 0 ? Math.round((cumWins[p.id] / cumMatches[p.id]) * 100) : 0;
             });
             return entry;
         }).filter(Boolean);
     }, [matches, players]);
+
+    // --- Advanced Analytics: Dynamic Duos ---
+    const partnerships = {}; 
+    (matches || []).forEach(m => {
+        if (!m || !m.teams || m.winnerTeam === undefined) return;
+        const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams || {}).sort().map(k => (m.teams || {})[k]);
+        const winners = matchTeams[m.winnerTeam] || [];
+        if (!Array.isArray(winners)) return;
+        
+        winners.forEach((p1, i) => {
+            winners.slice(i + 1).forEach(p2 => {
+                const pair = [p1.id, p2.id].sort().join('-');
+                if (!partnerships[pair]) partnerships[pair] = { wins: 0 };
+                partnerships[pair].wins += 1;
+            });
+        });
+    });
+
+    const topDuos = Object.entries(partnerships)
+        .map(([pair, data]) => {
+            const [id1, id2] = pair.split('-');
+            const p1 = players.find(p => String(p.id) === id1);
+            const p2 = players.find(p => String(p.id) === id2);
+            return { p1, p2, wins: data.wins };
+        })
+        .filter(d => d.p1 && d.p2)
+        .sort((a, b) => b.wins - a.wins)
+        .slice(0, 3);
 
     return (
         <div className="space-y-6 pb-28 text-white">
@@ -243,6 +270,30 @@ export default function StatsHub({ players, matches, onSelectPlayer }) {
                     )}
                 </div>
             </section>
+
+            {/* Advanced Insights Section */}
+            <div className="grid grid-cols-1 gap-4 mt-6 pb-10">
+                <div className="vbc-card p-5 rounded-2xl" style={{background:'#111', border:'1px solid #222'}}>
+                    <h3 className="font-display text-xl mb-4 flex items-center gap-2" style={{fontFamily:"'Bebas Neue', sans-serif"}}>
+                        <Zap className="w-5 h-5 text-[#FF4500]" /> GOLDEN PARTNERS
+                    </h3>
+                    <div className="space-y-3">
+                        {topDuos.map((duo, i) => (
+                            <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex -space-x-2">
+                                        <PlayerIcon icon={duo.p1.icon} name={duo.p1.name} className="w-8 h-8 border-2 border-[#111]" />
+                                        <PlayerIcon icon={duo.p2.icon} name={duo.p2.name} className="w-8 h-8 border-2 border-[#111]" />
+                                    </div>
+                                    <span className="text-xs font-black uppercase tracking-tight">{duo.p1.name} + {duo.p2.name}</span>
+                                </div>
+                                <div className="text-[#FF4500] font-black text-sm">{duo.wins} WINS</div>
+                            </div>
+                        ))}
+                        {topDuos.length === 0 && <p className="text-[10px] text-zinc-500 uppercase font-black">Not enough data yet</p>}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }

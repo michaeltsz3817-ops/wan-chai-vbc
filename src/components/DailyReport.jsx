@@ -31,8 +31,8 @@ export default function DailyReport({ players, matches }) {
 
     const totalStake = filteredMatches.reduce((acc, m) => {
         if (!m || !m.teams) return acc;
-        const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams).sort().map(k => m.teams[k]);
-        if (m.winnerTeam === undefined || !matchTeams[m.winnerTeam]) return acc;
+        const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams || {}).sort().map(k => (m.teams || {})[k]);
+        if (m.winnerTeam === undefined || !matchTeams[m.winnerTeam] || !Array.isArray(matchTeams[m.winnerTeam])) return acc;
         return acc + m.stake * (matchTeams.flat().length - matchTeams[m.winnerTeam].length);
     }, 0);
 
@@ -42,8 +42,8 @@ export default function DailyReport({ players, matches }) {
         let dailyLosses = 0;
         filteredMatches.forEach(m => {
             if (!m || !m.teams) return;
-            const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams).sort().map(k => m.teams[k]);
-            if (m.winnerTeam === undefined || !matchTeams[m.winnerTeam]) return;
+            const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams || {}).sort().map(k => (m.teams || {})[k]);
+            if (m.winnerTeam === undefined || !matchTeams[m.winnerTeam] || !Array.isArray(matchTeams[m.winnerTeam])) return;
             const wasInWinner = matchTeams[m.winnerTeam]?.some(wp => wp.id === p.id);
             const wasInMatch = matchTeams.flat().some(tp => tp && tp.id === p.id);
             if (!wasInMatch) return;

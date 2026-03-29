@@ -30,7 +30,8 @@ export default function PlayerProfile({ player, matches, allPlayers, onClose }) 
 
         sortedMatches.forEach(m => {
             if (!m.teams) return;
-            const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams).sort().map(k => m.teams[k]);
+            const matchTeams = Array.isArray(m.teams) ? m.teams : Object.keys(m.teams || {}).sort().map(k => (m.teams || {})[k]);
+            if (m.winnerTeam === undefined || !matchTeams[m.winnerTeam] || !Array.isArray(matchTeams[m.winnerTeam])) return;
             const winnerIdx = m.absoluteWinnerIdx !== undefined ? m.absoluteWinnerIdx : m.winnerTeam;
             const winnerTeam = matchTeams[winnerIdx];
             if (!winnerTeam) return;

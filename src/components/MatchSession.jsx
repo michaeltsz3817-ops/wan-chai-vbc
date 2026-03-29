@@ -56,9 +56,9 @@ export default function MatchSession({
     const isThreeTeam = activeTeams.length === 3;
     let currentMatchSubindices = [0, 1];
     if (isThreeTeam) {
-        if (gameStep === 0) currentMatchSubindices = [0, 1];
-        if (gameStep === 1) currentMatchSubindices = [g1WinnerIdx === 0 ? 1 : 0, 2];
-        if (gameStep === 2) currentMatchSubindices = [2, g1WinnerIdx];
+        if (gameStep === 1) currentMatchSubindices = [1, 2]; // B vs C
+        else if (gameStep === 2) currentMatchSubindices = [0, 2]; // A vs C
+        else currentMatchSubindices = [0, 1]; // A vs B
     }
 
     const [isRecording, setIsRecording] = useState(false);
@@ -69,7 +69,7 @@ export default function MatchSession({
         setIsRecording(true);
         const playingTeams = currentMatchSubindices.map(idx => activeTeams[idx]);
         const winners = activeTeams[winnerIndex];
-        const losers = playingTeams.filter(t => t !== winners).flat();
+        const losers = playingTeams.filter(t => t && t !== winners).filter(Boolean).flat().filter(Boolean);
         const totalLost = losers.length * stake;
         const winPerPerson = winners.length > 0 ? totalLost / winners.length : 0;
         const absoluteWinnerIdx = winnerIndex;
@@ -179,7 +179,7 @@ export default function MatchSession({
                                         <p className="font-display text-2xl tracking-wide uppercase leading-none">TEAM {idx + 1}</p>
                                     </div>
                                     <div className="flex flex-wrap gap-2.5">
-                                        {team.map(p => (
+                                        {(team || []).map(p => (
                                             <div key={p.id} className="flex items-center gap-2 bg-[#0a0a0a] px-3 py-2 rounded-xl border border-[#1a1a1a]">
                                                 <PlayerIcon icon={p.icon} name={p.name} className="w-6 h-6" />
                                                 <span className="text-[10px] font-black uppercase">{p.name}</span>

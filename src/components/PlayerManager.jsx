@@ -78,7 +78,7 @@ function SkillCard({ player, onUpdate }) {
                                 </div>
 
                                  <div className="grid grid-cols-2 gap-2">
-                                    {Object.entries(SKILL_LABELS).map(([key, { label, icon: Icon, color }]) => (
+                                    {(Object.entries(SKILL_LABELS) || []).map(([key, { label, icon: Icon, color }]) => (
                                         <div key={key} className="p-3 flex flex-col gap-2 rounded-xl transition-all" style={{background: '#111', border: '1px solid #222'}}>
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">

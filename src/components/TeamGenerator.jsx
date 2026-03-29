@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Users, Filter, RefreshCw, Trophy, Play, Trash2, GripVertical, Zap, Shield, Target, Hand, Layers, UserCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ROLES } from '../lib/constants';
+import { ROLES, EXCLUSION_PAIRS } from '../lib/constants';
 import PlayerIcon from './ui/PlayerIcon';
 
 export default function TeamGenerator({ players, teams, restingPlayers, setTeams, onReset, onGenerateComplete, presentPlayerIds, onResetAttendance }) {
@@ -29,28 +29,25 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
             const teamIdx = isForward ? (index % numTeams) : (numTeams - 1 - (index % numTeams));
             newTeams[teamIdx].push(player);
         });
-
-        // 🚨 Hidden Exclusion Rule: ex1 and ex2 never together
-        const ex1 = '13868';
-        const ex2 = '17890';
-        const teamWithEx1 = newTeams.findIndex(t => t.some(p => String(p.id) === ex1));
-        const teamWithEx2 = newTeams.findIndex(t => t.some(p => String(p.id) === ex2));
-
-        if (teamWithEx1 !== -1 && teamWithEx1 === teamWithEx2) {
-            const targetTeamIdx = (teamWithEx1 + 1) % newTeams.length;
-            const p2 = newTeams[teamWithEx1].find(p => String(p.id) === ex2);
+        // 實施排除規則 (Exclusion Pairs)
+        (EXCLUSION_PAIRS || []).forEach(([id1, id2]) => {
+            const t1Idx = newTeams.findIndex(t => t.some(p => String(p.id) === id1));
+            const t2Idx = newTeams.findIndex(t => t.some(p => String(p.id) === id2));
             
-            if (p2) {
-                if (newTeams[targetTeamIdx].length > 0) {
-                    const pSwap = newTeams[targetTeamIdx][0];
-                    newTeams[teamWithEx1] = newTeams[teamWithEx1].map(p => p.id === p2.id ? pSwap : p);
-                    newTeams[targetTeamIdx] = newTeams[targetTeamIdx].map(p => p.id === pSwap.id ? p2 : p);
+            if (t1Idx !== -1 && t1Idx === t2Idx) {
+                const targetIdx = (t1Idx + 1) % newTeams.length;
+                const p2 = newTeams[t1Idx].find(p => String(p.id) === id2);
+                
+                if (newTeams[targetIdx].length > 0) {
+                    const pSwap = newTeams[targetIdx][0];
+                    newTeams[t1Idx] = newTeams[t1Idx].map(p => p.id === p2.id ? pSwap : p);
+                    newTeams[targetIdx] = newTeams[targetIdx].map(p => p.id === pSwap.id ? p2 : p);
                 } else {
-                    newTeams[teamWithEx1] = newTeams[teamWithEx1].filter(p => p.id !== p2.id);
-                    newTeams[targetTeamIdx].push(p2);
+                    newTeams[t1Idx] = newTeams[t1Idx].filter(p => p.id !== p2.id);
+                    newTeams[targetIdx].push(p2);
                 }
             }
-        }
+        });
 
         setTeams(newTeams, nextResting);
         // Automatically switch to match page
@@ -97,18 +94,18 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
             return;
         }
 
-        // 🚨 Hidden Exclusion Rule Check
-        const ex1 = '13868';
-        const ex2 = '17890';
-        const isEx1 = String(player.id) === ex1;
-        const isEx2 = String(player.id) === ex2;
-        if (isEx1 || isEx2) {
-            const other = isEx1 ? ex2 : ex1;
-            if (newTeams[toTeamIdx].some(p => String(p.id) === other)) {
-                alert('🚨 隱藏規則：這兩位球員不能在同一隊！');
-                setDraggedPlayer(null);
-                return;
-            }
+        const isExclusionConflict = (playerId, targetTeam) => {
+            return (EXCLUSION_PAIRS || []).some(([id1, id2]) => {
+                if (String(playerId) === id1) return (targetTeam || []).some(p => String(p.id) === id2);
+                if (String(playerId) === id2) return (targetTeam || []).some(p => String(p.id) === id1);
+                return false;
+            });
+        };
+
+        if (isExclusionConflict(player.id, newTeams[toTeamIdx])) {
+            alert('🚨 隱藏規則：這兩位球員不能在同一隊！');
+            setDraggedPlayer(null);
+            return;
         }
 
         // Remove from source team
@@ -165,17 +162,17 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
         const newResting = restingPlayers.filter(p => p.id !== player.id);
         const newTeams = [...teams];
         
-        // 🚨 Hidden Exclusion Rule Check
-        const ex1 = '13868';
-        const ex2 = '17890';
-        const isEx1 = String(player.id) === ex1;
-        const isEx2 = String(player.id) === ex2;
-        if (isEx1 || isEx2) {
-            const other = isEx1 ? ex2 : ex1;
-            if (newTeams[toTeamIdx].some(p => String(p.id) === other)) {
-                alert('🚨 隱藏規則：這兩位球員不能在同一隊！');
-                return;
-            }
+        const isExclusionConflict = (playerId, targetTeam) => {
+            return (EXCLUSION_PAIRS || []).some(([id1, id2]) => {
+                if (String(playerId) === id1) return (targetTeam || []).some(p => String(p.id) === id2);
+                if (String(playerId) === id2) return (targetTeam || []).some(p => String(p.id) === id1);
+                return false;
+            });
+        };
+
+        if (isExclusionConflict(player.id, newTeams[toTeamIdx])) {
+            alert('🚨 隱藏規則：這兩位球員不能在同一隊！');
+            return;
         }
 
         newTeams[toTeamIdx] = [...newTeams[toTeamIdx], player];
@@ -221,8 +218,8 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
                     {players.filter(p => presentPlayerIds?.includes(p.id)).map(p => (
                         <div key={p.id} className="flex items-center gap-2 px-3 py-1.5 rounded-full"
                             style={{background:'#111', border:'1px solid #333'}}>
-                            <PlayerIcon icon={p.icon} name={p.name} role={p.role} isHot={p.isHot} className="w-5 h-5" />
-                            <span className="text-[9px] font-black uppercase tracking-tighter">{p.name}</span>
+                            <PlayerIcon icon={p.icon} name={p.name} role={p.role} isHot={p.isHot} className="w-7 h-7" />
+                            <span className="text-xs font-black uppercase tracking-tighter">{p.name}</span>
                         </div>
                     ))}
                     {(!presentPlayerIds || presentPlayerIds.length === 0) && <p className="text-[10px] italic" style={{color:'#555'}}>Awaiting check-in...</p>}
@@ -259,7 +256,7 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
                         <h3 className="text-[10px] font-black uppercase tracking-widest" style={{color:'#666'}}>MATCHUPS</h3>
                     </div>
                     <AnimatePresence>
-                        {teams.map((team, idx) => {
+                        {(Array.isArray(teams) ? teams : []).map((team, idx) => {
                             const teamColors = ['#1d4ed8', '#FF4500', '#7c3aed']; // Blue, Orange, Purple
                             const color = teamColors[idx % teamColors.length];
                             
@@ -294,12 +291,12 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-2 min-h-[60px] relative z-10">
-                                    {team.map(p => (
+                                    {(team || []).map(p => (
                                         <motion.div 
                                             layout key={p.id} draggable
                                             onDragStart={(e) => handleDragStart(e, p, idx)}
                                             onDragEnd={handleDragEnd}
-                                            className="group/item relative flex items-center justify-between p-3 rounded-xl transition-all select-none"
+                                            className={`group/item relative flex items-center justify-between p-3 rounded-xl transition-all select-none ${(p.bestStreak || 0) >= 3 ? 'on-fire-glow' : ''}`}
                                             style={{background:'#1a1a1a', border:'1px solid #222'}}
                                         >
                                             <div className="flex items-center gap-3">
@@ -311,9 +308,9 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
                                                 >
                                                     <GripVertical className="w-4 h-4" />
                                                 </div>
-                                                <PlayerIcon icon={p.icon} name={p.name} role={p.role} isHot={p.isHot} className="w-8 h-8" />
+                                                <PlayerIcon icon={p.icon} name={p.name} role={p.role} isHot={p.isHot} className="w-10 h-10" />
                                                 <div className="flex flex-col">
-                                                    <span className="font-black text-[13px] tracking-tight uppercase">{p.name}</span>
+                                                    <span className="font-black text-base tracking-tight uppercase">{p.name}</span>
                                                     {p.form !== 0 && (
                                                         <span className="text-[7px] font-black uppercase tracking-widest mt-0.5"
                                                               style={{color: p.form > 0 ? '#FF4500' : '#3b82f6'}}>
@@ -365,8 +362,8 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
                                     {restingPlayers.map(p => (
                                         <div key={p.id} className="group/resting relative p-2 pr-4 flex items-center gap-2.5 rounded-xl transition-all"
                                              style={{background:'#1a1a1a', border:'1px solid #222'}}>
-                                            <PlayerIcon icon={p.icon} name={p.name} role={p.role} className="w-6 h-6" />
-                                            <span className="text-[11px] font-black uppercase">{p.name}</span>
+                                            <PlayerIcon icon={p.icon} name={p.name} role={p.role} className="w-8 h-8" />
+                                            <span className="text-sm font-black uppercase">{p.name}</span>
                                             
                                             <div className="flex gap-1 ml-2 opacity-0 group-hover/resting:opacity-100 transition-all">
                                                 {teams.map((_, tIdx) => (
