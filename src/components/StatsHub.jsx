@@ -7,14 +7,14 @@ import { ACHIEVEMENTS } from '../lib/constants';
 import PlayerIcon from './ui/PlayerIcon';
 
 const SORT_MODES = [
+    { key: 'drinks', label: '金額' },
     { key: 'wins', label: '勝場' },
     { key: 'winRate', label: '勝率' },
     { key: 'bestStreak', label: '連勝' },
-    { key: 'drinks', label: '飲數' },
 ];
 
 const CHART_MODES = [
-    { key: 'drinks', label: '飲數' },
+    { key: 'drinks', label: '金額' },
     { key: 'winRate', label: '勝率%' },
 ];
 
@@ -27,7 +27,7 @@ const RANK_STYLES = [
 const chartColors = ['#FF4500', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981'];
 
 export default function StatsHub({ players, matches, onSelectPlayer }) {
-    const [sortMode, setSortMode] = useState('wins');
+    const [sortMode, setSortMode] = useState('drinks');
     const [chartMode, setChartMode] = useState('drinks');
     const [highlightedPlayer, setHighlightedPlayer] = useState(null);
 
@@ -108,7 +108,7 @@ export default function StatsHub({ players, matches, onSelectPlayer }) {
             <section className="grid grid-cols-2 gap-3">
                 {[
                     { title: '勝場王', icon: Trophy, player: top3ByWins[0], stat: `${top3ByWins[0]?.wins || 0} WINS`, color: '#FF4500' },
-                    { title: '飲數王', icon: GlassWater, player: top3ByDrinks[0], stat: `+${top3ByDrinks[0]?.drinks || 0} 飲`, color: '#3b82f6' },
+                    { title: '金額王', icon: GlassWater, player: top3ByDrinks[0], stat: `$${top3ByDrinks[0]?.drinks || 0}`, color: '#3b82f6' },
                 ].map(({ title, icon: Icon, player, stat, color }) => (
                     <div key={title} className="rounded-2xl overflow-hidden" style={{ background: '#111', border: '1px solid #222' }}>
                         <div className="h-1 w-full" style={{ background: color }} />
@@ -253,12 +253,14 @@ export default function StatsHub({ players, matches, onSelectPlayer }) {
                                                 className="h-full rounded-full"
                                                 style={{ background: idx === 0 ? '#FF4500' : '#333' }} />
                                         </div>
-                                        <p className="text-[8px] mt-0.5" style={{ color: '#444' }}>{winRate}% 勝率 · {p.totalMatches || 0} 場</p>
+                                        <p className="text-[8px] mt-0.5" style={{ color: '#444' }}>{winRate}% 勝率 · {p.wins || 0}勝 {p.losses || 0}負 · {p.totalMatches || 0} 場</p>
                                     </div>
 
                                     <div className="text-right flex-shrink-0">
-                                        <p className="font-black text-lg" style={{ color: '#FF4500' }}>{p.wins || 0}</p>
-                                        <p className="text-[8px]" style={{ color: '#444' }}>勝</p>
+                                        <p className="font-black text-lg" style={{ color: '#FF4500' }}>
+                                            {sortMode === 'drinks' ? `$${p.drinks || 0}` : (p[sortMode] || 0)}
+                                        </p>
+                                        <p className="text-[8px]" style={{ color: '#444' }}>{SORT_MODES.find(m => m.key === sortMode)?.label}</p>
                                     </div>
                                     <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: '#333' }} />
                                 </motion.div>

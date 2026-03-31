@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Users, Filter, RefreshCw, Trophy, Play, Trash2, GripVertical, Zap, Shield, Target, Hand, Layers, UserCircle } from 'lucide-react';
+import { Users, Filter, RefreshCw, Trophy, Play, Trash2, GripVertical, Zap, Shield, Target, Hand, Layers, UserCircle, Plus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ROLES, EXCLUSION_PAIRS } from '../lib/constants';
 import PlayerIcon from './ui/PlayerIcon';
 
 export default function TeamGenerator({ players, teams, restingPlayers, setTeams, onReset, onGenerateComplete, presentPlayerIds, onResetAttendance }) {
     const [numTeams, setNumTeams] = useState(2);
+    const [activeAddTeam, setActiveAddTeam] = useState(null);
 
     const generateTeams = () => {
         if (!presentPlayerIds || presentPlayerIds.length < 2) return;
@@ -155,10 +156,6 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
     };
 
     const handleJoin = (player, toTeamIdx) => {
-        if (teams[toTeamIdx].length >= 6) {
-            alert('該隊伍人數已滿 (上限 6 人)！');
-            return;
-        }
         const newResting = restingPlayers.filter(p => p.id !== player.id);
         const newTeams = [...teams];
         
@@ -177,6 +174,35 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
 
         newTeams[toTeamIdx] = [...newTeams[toTeamIdx], player];
         setTeams(newTeams, newResting);
+    };
+
+    const handleManualAdd = (player, toTeamIdx) => {
+        const isInTeam = teams.some(t => t.some(p => p.id === player.id));
+        if (isInTeam) {
+            alert('該球員已經在其他隊伍中！');
+            return;
+        }
+
+        const isExclusionConflict = (playerId, targetTeam) => {
+            return (EXCLUSION_PAIRS || []).some(([id1, id2]) => {
+                if (String(playerId) === id1) return (targetTeam || []).some(p => String(p.id) === id2);
+                if (String(playerId) === id2) return (targetTeam || []).some(p => String(p.id) === id1);
+                return false;
+            });
+        };
+
+        const newTeams = [...teams];
+        if (isExclusionConflict(player.id, newTeams[toTeamIdx])) {
+            alert('🚨 隱藏規則：這兩位球員不能在同一隊！');
+            return;
+        }
+
+        newTeams[toTeamIdx] = [...newTeams[toTeamIdx], player];
+        
+        // Update both teams and resting players
+        const newResting = restingPlayers.filter(p => p.id !== player.id);
+        setTeams(newTeams, newResting);
+        setActiveAddTeam(null);
     };
 
     return (
@@ -284,9 +310,18 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
                                         <div className="w-1.5 h-6 rounded-full" style={{background: color}} />
                                         <h4 className="font-display text-2xl tracking-wide" style={{fontFamily:"'Bebas Neue', sans-serif"}}>TEAM {idx + 1}</h4>
                                     </div>
-                                    <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full"
-                                         style={{background:'#1a1a1a', color:'#666'}}>
-                                        <Users className="w-3 h-3" /> {team.length}
+                                    <div className="flex items-center gap-2 relative z-20">
+                                        <button 
+                                            onClick={() => setActiveAddTeam(idx)}
+                                            className="w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-90"
+                                            style={{background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: color}}
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                        </button>
+                                        <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full"
+                                             style={{background:'#1a1a1a', color:'#666'}}>
+                                            <Users className="w-3 h-3" /> {team.length}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -328,8 +363,8 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
                                                 </div>
                                                 <button 
                                                     onClick={() => handleRest(p, idx)}
-                                                    className="w-8 h-8 flex items-center justify-center rounded-lg transition-all opacity-0 group-hover/item:opacity-100"
-                                                    style={{background:'#220000', color:'#ff3333', border:'1px solid #330000'}}
+                                                    className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
+                                                    style={{background:'rgba(255,51,51,0.05)', color:'#ff3333', border:'1px solid rgba(255,51,51,0.2)'}}
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
@@ -346,6 +381,80 @@ export default function TeamGenerator({ players, teams, restingPlayers, setTeams
                             </motion.div>
                             )
                         })}
+
+                            {/* Manual Add Modal Overlay */}
+                            <AnimatePresence>
+                                {activeAddTeam !== null && (
+                                    <motion.div 
+                                        initial={{ opacity: 0 }} 
+                                        animate={{ opacity: 1 }} 
+                                        exit={{ opacity: 0 }}
+                                        className="fixed inset-0 z-[100] flex items-center justify-center p-6"
+                                        style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
+                                    >
+                                        <motion.div 
+                                            initial={{ scale: 0.9, y: 20 }}
+                                            animate={{ scale: 1, y: 0 }}
+                                            className="w-full max-w-md rounded-3xl overflow-hidden"
+                                            style={{ background: '#111', border: '1px solid #222', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}
+                                        >
+                                            <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                                                <h4 className="font-display text-2xl tracking-wide uppercase" style={{fontFamily:"'Bebas Neue', sans-serif"}}>
+                                                    ADD TO <span style={{color: ['#1d4ed8', '#FF4500', '#7c3aed'][activeAddTeam % 3]}}>TEAM {activeAddTeam + 1}</span>
+                                                </h4>
+                                                <button onClick={() => setActiveAddTeam(null)} className="p-2 rounded-xl bg-white/5 text-gray-400">
+                                                    <X className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                            
+                                            <div className="p-4 max-h-[60vh] overflow-y-auto space-y-6">
+                                                {/* Resting Section */}
+                                                <div>
+                                                    <p className="text-[10px] font-black tracking-widest text-gray-500 uppercase mb-3 px-2">Resting / Bench</p>
+                                                    <div className="grid grid-cols-1 gap-2">
+                                                        {(restingPlayers || []).map(p => (
+                                                            <button 
+                                                                key={p.id}
+                                                                onClick={() => handleManualAdd(p, activeAddTeam)}
+                                                                className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all text-left"
+                                                            >
+                                                                <PlayerIcon icon={p.icon} name={p.name} role={p.role} className="w-10 h-10" />
+                                                                <span className="font-black uppercase">{p.name}</span>
+                                                                <div className="ml-auto text-[8px] font-black px-2 py-1 rounded-md bg-white/5 text-gray-500">BENCH</div>
+                                                            </button>
+                                                        ))}
+                                                        {(!restingPlayers || restingPlayers.length === 0) && (
+                                                            <p className="text-[10px] italic text-gray-600 px-2">No players on bench</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Others Section */}
+                                                <div>
+                                                    <p className="text-[10px] font-black tracking-widest text-gray-500 uppercase mb-3 px-2">Other Roster Members</p>
+                                                    <div className="grid grid-cols-1 gap-2">
+                                                        {players.filter(p => 
+                                                            !presentPlayerIds?.includes(p.id) && 
+                                                            !teams.some(t => t.some(tp => tp.id === p.id)) &&
+                                                            !restingPlayers?.some(rp => rp.id === p.id)
+                                                        ).map(p => (
+                                                            <button 
+                                                                key={p.id}
+                                                                onClick={() => handleManualAdd(p, activeAddTeam)}
+                                                                className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all text-left opacity-60"
+                                                            >
+                                                                <PlayerIcon icon={p.icon} name={p.name} role={p.role} className="w-10 h-10" />
+                                                                <span className="font-black uppercase">{p.name}</span>
+                                                                <div className="ml-auto text-[8px] font-black px-2 py-1 rounded-md bg-white/5 text-gray-500 text-center leading-none">NOT<br/>PRESENT</div>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
 
                         {/* Resting Players */}
                         {restingPlayers && restingPlayers.length > 0 && (
