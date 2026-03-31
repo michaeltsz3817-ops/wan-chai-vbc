@@ -156,7 +156,7 @@ function App() {
 
   const playersWithStats = useMemo(() => {
     const processed = (players || []).map(p => {
-      if (!p) return null;
+      if (!p || !p.name) return null;
       let wins = 0, losses = 0, drinks = 0, currentStreak = 0, bestStreak = 0, currentLoseStreak = 0, hasPhoenix = false;
       const dailyWins = {};
       const sortedMatches = [...(matches || [])].filter(m => m && m.date).sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -450,20 +450,20 @@ function App() {
           {/* PLAYERS */}
           {activeTab === 'players' && (
             <motion.div key="players" variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              <PlayerManager
-                players={playersWithStats || []}
-                onAdd={addPlayer} onDelete={deletePlayer} onUpdate={updatePlayer}
-                onResetAll={resetAllStats} onExport={exportData} onImport={importData}
-                onPushToCloud={() => {
-                  if (window.confirm('硺庚規僳充奸铚凳管的所期數據个傳�b,��霁行号所據夸制行号玩的數據。')) {
-                    updatePlayersFirebase(players); updateMatchesFirebase(matches);
-                    updateAttendanceFirebase(presentPlayerIds, isAttendanceConfirmed);
-                    updateGameStateFirebase(teams, gameStep, g1WinnerIdx, restingPlayers);
-                    alert('數據已上傳已上直紩！');
-                  }
-                }}
-                isAdmin={isAdmin}
-              />
+                <PlayerManager
+                  players={playersWithStats || []}
+                  onAdd={addPlayer} onDelete={deletePlayer} onUpdate={updatePlayer}
+                  onResetAll={resetAllStats} onExport={exportData} onImport={importData}
+                  onPushToCloud={() => {
+                    if (window.confirm('確定要將所有數據同步到雲端嗎？這將會覆蓋數據庫上的現有數據。')) {
+                      updatePlayersFirebase(players); updateMatchesFirebase(matches);
+                      updateAttendanceFirebase(presentPlayerIds, isAttendanceConfirmed);
+                      updateGameStateFirebase(teams, gameStep, g1WinnerIdx, restingPlayers);
+                      alert('數據已同步完成！');
+                    }
+                  }}
+                  isAdmin={isAdmin}
+                />
             </motion.div>
           )}
 

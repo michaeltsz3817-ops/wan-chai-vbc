@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { UserPlus, Trash2, UserCircle, Camera, Check, X, Edit2, Zap, Shield, Target, Hand, Layers, Dumbbell, Star, ChevronDown, ChevronUp, Plus, Minus, Search, Download, Upload, ShieldCheck } from 'lucide-react';
+import { UserPlus, Trash2, UserCircle, Camera, Check, X, Edit2, Zap, Shield, Target, Hand, Layers, Dumbbell, Star, ChevronDown, ChevronUp, Plus, Minus, Search, Download, Upload, ShieldCheck, Flame } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, Radar as RadarLine, ResponsiveContainer } from 'recharts';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
+import { Radar as RadarLine } from 'recharts';
 import { EMOJIS, SKILL_LABELS, ROLES } from '../lib/constants';
 import PlayerIcon from './ui/PlayerIcon';
 
@@ -10,7 +11,7 @@ function SkillCard({ player, onUpdate }) {
 
     const chartData = Object.entries(player.skills || {}).map(([key, value]) => ({
         subject: SKILL_LABELS[key]?.label || key,
-        value: value,
+        value: typeof value === 'number' ? value : 1,
         fullMark: 5
     }));
 
@@ -202,7 +203,10 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
         }
     };
 
-    const filteredPlayers = players.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    const filteredPlayers = (players || []).filter(p => {
+        if (!p || !p.name) return false;
+        return p.name.toLowerCase().includes((searchTerm || '').toLowerCase());
+    });
 
     return (
         <div className="space-y-8 pb-24 text-white">
@@ -282,7 +286,7 @@ export default function PlayerManager({ players, onAdd, onDelete, onUpdate, onRe
 
                 <div className="grid grid-cols-1 gap-3">
                     <AnimatePresence mode="popLayout">
-                        {[...filteredPlayers].sort((a, b) => a.name.localeCompare(b.name, 'zh-HK')).map((p) => (
+                        {[...filteredPlayers].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh-HK')).map((p) => (
                             <motion.div layout key={p.id} className="p-5 rounded-2xl flex flex-col transition-all group overflow-hidden relative" 
                                 style={{background: '#111', border: editingId === p.id ? '1px solid #FF4500' : '1px solid #222'}}>
                                 
